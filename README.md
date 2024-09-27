@@ -22,9 +22,9 @@ Our experiments on a variety of chaotic systems including Lorenz 96, Kuramoto-Si
 Model performance in short-term forecasting accuracy in absolute error with states at step $\{2, 4, 8, 16, 32\}$.
 
 <div style="display: flex; justify-content: space-around;">
-  <img src="figures/ground_truth.gif" alt="GIF 1" style="width: 35%;">
-  <img src="figures/PFNN_prediction.gif" alt="GIF 2" style="width: 35%;">
-  <img src="figures/absolute_error.gif" alt="GIF 3" style="width: 35%;">
+  <img src="figures/ground_truth.gif" alt="GIF 1" style="width: 33%;">
+  <img src="figures/PFNN_prediction.gif" alt="GIF 2" style="width: 33%;">
+  <img src="figures/absolute_error.gif" alt="GIF 3" style="width: 33%;">
 </div>
 
 ## Install and dependence
