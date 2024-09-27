@@ -20,12 +20,12 @@ Our experiments on a variety of chaotic systems including Lorenz 96, Kuramoto-Si
 ### Kolmogorov Flow (2D, Dimension 64 $\times$ 64)
 
 Model performance in short-term forecasting accuracy in absolute error with states at step $\{2, 4, 8, 16, 32\}$.
-![1727440961162](image/README/1727440961162.png)
 
-![1727451069485](image/README/1727451069485.png)
-
-![1727451084559](image/README/1727451084559.png)
-
+<div style="display: flex; justify-content: space-around;">
+  <img src="figures/ground_truth.gif" alt="GIF 1" style="width: 35%;">
+  <img src="figures/PFNN_prediction.gif" alt="GIF 2" style="width: 35%;">
+  <img src="figures/absolute_error.gif" alt="GIF 3" style="width: 35%;">
+</div>
 
 ## Install and dependence
 
