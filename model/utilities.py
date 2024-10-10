@@ -7,6 +7,8 @@ import operator
 from functools import reduce
 import sys
 from prettytable import PrettyTable
+import matplotlib
+import matplotlib.pyplot as plt
 
 #################################################
 #
@@ -33,57 +35,92 @@ def count_parameters(model):
     print(f"Total Trainable Params: {total_params}")
     return total_params
 
+def predictions(model, test_a_0, s, T, sample_id= None):
+    device = next(model.parameters()).device
+    out = test_a_0.reshape(1,s,s).to(device) 
+    if sample_id is None:
+        pred = torch.zeros(T, s, s)   
+        with torch.no_grad():
+            for i in range(T):
+                out = model(out.view(1,s,s,1), mode='forward')[0][0]
+                pred[i] = out.view(-1,s,s)
+    else:
+        pred = torch.zeros(sample_id, s, s)
+        with torch.no_grad():
+            for i in range(sample_id):
+                out = model(out.view(1,s,s,1), mode='forward')[0][0]
+                pred[i] = out.view(-1,s,s)
+    return pred
 
-# PCA
-class PCA(object):
-    def __init__(self, x, dim, subtract_mean=True):
-        super(PCA, self).__init__()
+def pred_traj_sample(model, id, test_a, s, T, sample_id=None):
+      test_a_0 = test_a[int(id*T)]
+      pred_sample = predictions(model, test_a_0, s, T, sample_id = sample_id)
+      return pred_sample
 
-        # Input size
-        x_size = list(x.size())
 
-        # Input data is a matrix
-        assert len(x_size) == 2
+def plot_sample_abs(ground_truth, pred_pfnn_sample, sample_id=[2,4,8,16,32]):
+    fig, ax = plt.subplots(5, 3, figsize=(3*3.5, 5*3.5))
+    sub_titles = ['Ground Truth', 'PFNN', 'Error']
+    for i in range(5):
+        # add step id of steps from sample_id to the left of each figure row
+        ax[i][0].text(-0.25, 0.5, 'Step ' + str(sample_id[i]), va='center', ha='center', rotation='vertical', fontsize=24, transform=ax[i][0].transAxes)
+        if i == 0:
+            for j in range(3):
+                ax[i][j].set_title(sub_titles[j], fontsize=24,)
+        ax[i][0].imshow(ground_truth[i].T, origin='lower',cmap='jet', aspect='auto')
+        vmin = 0
+        vmax = 2*ground_truth[i].max()
+        ax[i][1].imshow(pred_pfnn_sample[i].T, origin='lower', cmap='jet', aspect='auto')
+        ax[i][2].imshow(abs(pred_pfnn_sample[i].T- ground_truth[i].T), origin='lower', cmap='jet', aspect='auto', vmin=vmin, vmax=vmax)
+        # colormesh = ax[i][2].pcolormesh(abs(pred_pfnn_sample[i].T - ground_truth[i].T), cmap='jet')
+        # fig.colorbar(colormesh, ax=ax[i], fraction=0.05, pad=0.04)
+        # fig.savefig('2D_NS_Re40_abs_diff.png', dpi=300, bbox_inches='tight')
+    colormesh = ax[-1][-1].pcolormesh(abs(pred_pfnn_sample[-1].T - ground_truth[-1].T), cmap='jet')
+    fig.colorbar(colormesh, ax=ax, fraction=0.08, pad=0.04)
 
-        # Reducing dimension is less than the minimum of the
-        # number of observations and the feature dimension
-        assert dim <= min(x_size)
+def plot_comparison(truth_data, pred_data_list, mean_diff_list, titles, colorbase=None):
+    """
+    Plots a comparison of truth data and multiple predicted data sets.
 
-        self.reduced_dim = dim
+    Parameters:
+    truth_data (2D array): The truth data to be plotted.
+    pred_data_list (list of 2D arrays): List of predicted data sets to be plotted.
+    mean_diff_list (list of floats): List of mean differences for each predicted data set.
+    titles (list of str): List of titles for each subplot.
+    main_title (str): The main title for the plot.
+    """
+    font = {'size': 16, 'family': 'Times New Roman'}
+    matplotlib.rc('font', **font)
 
-        if subtract_mean:
-            self.x_mean = torch.mean(x, dim=0).view(1, -1)
-        else:
-            self.x_mean = torch.zeros((x_size[1],), dtype=x.dtype, layout=x.layout, device=x.device)
+    fig, axes = plt.subplots(1, len(pred_data_list) + 1, figsize=(3.8*(len(pred_data_list)+1), 7))
+    # fig.suptitle(main_title, fontsize=16, fontweight='bold')
 
-        # SVD
-        U, S, V = torch.svd(x - self.x_mean)
-        V = V.t()
+    # Plot truth data
+    im = axes[0].imshow(truth_data, origin='lower')
+    axes[0].set_title(titles[0], fontsize=20, fontweight='bold')
 
-        # Flip sign to ensure deterministic output
-        max_abs_cols = torch.argmax(torch.abs(U), dim=0)
-        signs = torch.sign(U[max_abs_cols, range(U.size()[1])]).view(-1, 1)
-        V *= signs
+    if colorbase is None:
+        vmin = truth_data.min()
+        vmax = truth_data.max()
+    else:
+        vmin = colorbase.min()
+        vmax = colorbase.max()
 
-        self.W = V.t()[:, 0:self.reduced_dim]
-        self.sing_vals = S.view(-1, )
+    # Plot predicted data
+    for i, (pred_data, mean_diff, title) in enumerate(zip(pred_data_list, mean_diff_list, titles[1:]), start=1):
+        axes[i].imshow(pred_data, origin='lower', vmin=vmin, vmax=vmax)
+        axes[i].set_title(f'{title}', fontsize=20, fontweight='bold')
+                        #   \nMean Diff: {mean_diff:.4f}'
 
-    def cuda(self):
-        self.W = self.W.cuda()
-        self.x_mean = self.x_mean.cuda()
-        self.sing_vals = self.sing_vals.cuda()
+    if colorbase is None:
+        # Add color bar
+        fig.colorbar(im, ax=axes, orientation='vertical', fraction=0.02, pad=0.05)
+    else: 
+        fig.colorbar(axes[1].imshow(colorbase, origin='lower', vmin=vmin, vmax=vmax), ax=axes, orientation='vertical', fraction=0.02, pad=0.05)
 
-    def encode(self, x):
-        return (x - self.x_mean).mm(self.W)
-
-    def decode(self, x):
-        return x.mm(self.W.t()) + self.x_mean
-
-    def forward(self, x):
-        return self.decode(self.encode(x))
-
-    def __call__(self, x):
-        return self.forward(x)
+    # fig.savefig('2d_ns_re40_' + title[1][:3] + '.png', dpi=600, bbox_inches='tight')
+    # Show the plot
+    plt.show()
 
 
 # reading data
@@ -149,93 +186,6 @@ class MatReader(object):
     def set_float(self, to_float):
         self.to_float = to_float
 
-# normalization, pointwise gaussian
-class UnitGaussianNormalizer(object):
-    def __init__(self, x, eps=0.00001):
-        super(UnitGaussianNormalizer, self).__init__()
-
-        # x could be in shape of ntrain*n or ntrain*T*n or ntrain*n*T
-        self.mean = torch.mean(x, 0)
-        self.std = torch.std(x, 0)
-        self.eps = eps
-
-    def encode(self, x):
-        x = (x - self.mean) / (self.std + self.eps)
-        return x
-
-    def decode(self, x, sample_idx=None):
-        if sample_idx is None:
-            std = self.std + self.eps # n
-            mean = self.mean
-        else:
-            if len(self.mean.shape) == len(sample_idx[0].shape):
-                std = self.std[sample_idx] + self.eps  # batch*n
-                mean = self.mean[sample_idx]
-            if len(self.mean.shape) > len(sample_idx[0].shape):
-                std = self.std[:,sample_idx]+ self.eps # T*batch*n
-                mean = self.mean[:,sample_idx]
-
-        # x is in shape of batch*n or T*batch*n
-        x = (x * std) + mean
-        return x
-
-    def cuda(self):
-        self.mean = self.mean.cuda()
-        self.std = self.std.cuda()
-
-    def cpu(self):
-        self.mean = self.mean.cpu()
-        self.std = self.std.cpu()
-
-# normalization, Gaussian
-class GaussianNormalizer(object):
-    def __init__(self, x, eps=0.00001):
-        super(GaussianNormalizer, self).__init__()
-
-        self.mean = torch.mean(x)
-        self.std = torch.std(x)
-        self.eps = eps
-
-    def encode(self, x):
-        x = (x - self.mean) / (self.std + self.eps)
-        return x
-
-    def decode(self, x, sample_idx=None):
-        x = (x * (self.std + self.eps)) + self.mean
-        return x
-
-    def cuda(self):
-        self.mean = self.mean.cuda()
-        self.std = self.std.cuda()
-
-    def cpu(self):
-        self.mean = self.mean.cpu()
-        self.std = self.std.cpu()
-
-
-# normalization, scaling by range
-class RangeNormalizer(object):
-    def __init__(self, x, low=0.0, high=1.0):
-        super(RangeNormalizer, self).__init__()
-        mymin = torch.min(x, 0)[0].view(-1)
-        mymax = torch.max(x, 0)[0].view(-1)
-
-        self.a = (high - low)/(mymax - mymin)
-        self.b = -self.a*mymax + high
-
-    def encode(self, x):
-        s = x.size()
-        x = x.view(s[0], -1)
-        x = self.a*x + self.b
-        x = x.view(s)
-        return x
-
-    def decode(self, x):
-        s = x.size()
-        x = x.view(s[0], -1)
-        x = (x - self.b)/self.a
-        x = x.view(s)
-        return x
 
 #loss function with rel/abs Lp loss
 class LpLoss(object):
@@ -352,126 +302,6 @@ class HsLoss(object):
             loss = loss / (k+1)
 
         return loss
-
-def pdist(sample_1, sample_2, norm=2, eps=1e-5):
-    r"""Compute the matrix of all squared pairwise distances.
-    Arguments
-    ---------
-    sample_1 : torch.Tensor or Variable
-        The first sample, should be of shape ``(n_1, d)``.
-    sample_2 : torch.Tensor or Variable
-        The second sample, should be of shape ``(n_2, d)``.
-    norm : float
-        The l_p norm to be used.
-    Returns
-    -------
-    torch.Tensor or Variable
-        Matrix of shape (n_1, n_2). The [i, j]-th entry is equal to
-        ``|| sample_1[i, :] - sample_2[j, :] ||_p``."""
-    n_1, n_2 = sample_1.size(0), sample_2.size(0)
-    norm = float(norm)
-    if norm == 2.:
-        norms_1 = torch.sum(sample_1**2, dim=1, keepdim=True)
-        norms_2 = torch.sum(sample_2**2, dim=1, keepdim=True)
-        norms = (norms_1.expand(n_1, n_2) +
-                 norms_2.transpose(0, 1).expand(n_1, n_2))
-        distances_squared = norms - 2 * sample_1.mm(sample_2.t())
-        return torch.sqrt(eps + torch.abs(distances_squared))
-    else:
-        dim = sample_1.size(1)
-        expanded_1 = sample_1.unsqueeze(1).expand(n_1, n_2, dim)
-        expanded_2 = sample_2.unsqueeze(0).expand(n_1, n_2, dim)
-        differences = torch.abs(expanded_1 - expanded_2) ** norm
-        inner = torch.sum(differences, dim=2, keepdim=False)
-        return (eps + inner) ** (1. / norm)
-
-class MMDStatistic:
-    r"""The *unbiased* MMD test of :cite:`gretton2012kernel`.
-    The kernel used is equal to:
-    .. math ::
-        k(x, x') = \sum_{j=1}^k e^{-\alpha_j\|x - x'\|^2},
-    for the :math:`\alpha_j` proved in :py:meth:`~.MMDStatistic.__call__`.
-    Arguments
-    ---------
-    n_1: int
-        The number of points in the first sample.
-    n_2: int
-        The number of points in the second sample."""
-
-    def __init__(self, n_1, n_2):
-        self.n_1 = n_1
-        self.n_2 = n_2
-
-        # The three constants used in the test.
-        self.a00 = 1. / (n_1 * (n_1 - 1))
-        self.a11 = 1. / (n_2 * (n_2 - 1))
-        self.a01 = - 1. / (n_1 * n_2)
-
-    def __call__(self, sample_1, sample_2, alphas, ret_matrix=False):
-        r"""Evaluate the statistic.
-        The kernel used is
-        .. math::
-            k(x, x') = \sum_{j=1}^k e^{-\alpha_j \|x - x'\|^2},
-        for the provided ``alphas``.
-        Arguments
-        ---------
-        sample_1: :class:`torch:torch.autograd.Variable`
-            The first sample, of size ``(n_1, d)``.
-        sample_2: variable of shape (n_2, d)
-            The second sample, of size ``(n_2, d)``.
-        alphas : list of :class:`float`
-            The kernel parameters.
-        ret_matrix: bool
-            If set, the call with also return a second variable.
-            This variable can be then used to compute a p-value using
-            :py:meth:`~.MMDStatistic.pval`.
-        Returns
-        -------
-        :class:`float`
-            The test statistic.
-        :class:`torch:torch.autograd.Variable`
-            Returned only if ``ret_matrix`` was set to true."""
-        sample_12 = torch.cat((sample_1, sample_2), 0)
-        distances = pdist(sample_12, sample_12, norm=2)
-
-        kernels = None
-        for alpha in alphas:
-            kernels_a = torch.exp(- alpha * distances ** 2)
-            if kernels is None:
-                kernels = kernels_a
-            else:
-                kernels = kernels + kernels_a
-
-        k_1 = kernels[:self.n_1, :self.n_1]
-        k_2 = kernels[self.n_1:, self.n_1:]
-        k_12 = kernels[:self.n_1, self.n_1:]
-
-        mmd = (2 * self.a01 * k_12.sum() +
-               self.a00 * (k_1.sum() - torch.trace(k_1)) +
-               self.a11 * (k_2.sum() - torch.trace(k_2)))
-        if ret_matrix:
-            return mmd, kernels
-        else:
-            return mmd
-
-    def pval(self, distances, n_permutations=1000):
-        r"""Compute a p-value using a permutation test.
-        Arguments
-        ---------
-        matrix: :class:`torch:torch.autograd.Variable`
-            The matrix computed using :py:meth:`~.MMDStatistic.__call__`.
-        n_permutations: int
-            The number of random draws from the permutation null.
-        Returns
-        -------
-        float
-            The estimated p-value."""
-        if isinstance(distances, Variable):
-            distances = distances.data
-        return permutation_test_mat(distances.cpu().numpy(),
-                                    self.n_1, self.n_2,
-                                    n_permutations,
-                                    a00=self.a00, a11=self.a11, a01=self.a01)
 
 
 

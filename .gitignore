@@ -1,6 +1,7 @@
 /__pycache__/*
-/models/__pycache__/*
-
+/model/__pycache__/*
+/model/paths.py
+*copy*
 /.DS_Store
 
 /lake/data/*
