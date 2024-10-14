@@ -8,5 +8,5 @@
 /lake/models/*
 
 /scripts/NS_train_contract.py
-/scripts/L96_train_contract.py
+# /scripts/L96_train_contract.py
 /scripts/L96_train_invariant.py
