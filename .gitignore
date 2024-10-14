@@ -7,6 +7,6 @@
 /lake/data/*
 /lake/models/*
 
-*NS_train_contract*
-*L96_train_contract*
-*L96_train_invariant*
+*/scripts/NS_train_contract*
+*/scripts/L96_train_contract*
+*/scripts/L96_train_invariant*
