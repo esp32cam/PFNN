@@ -7,7 +7,7 @@ PFNN employs an auto-encoder to map the chaotic system to a finite dimensional f
 It then learns the linear evolution operators to match the physical dynamics by addressing two critical properties in dissipative chaotic systems: (1) contraction, the system’s convergence toward its attractors, and (2) measure invariance, trajectories on the attractors following a probability distribution invariant to the dynamics.
 Our experiments on a variety of chaotic systems, including Lorenz 96, Kuramoto-Sivashinsky equation and Navier–Stokes equation, demonstrate that PFNN has more accurate predictions and physical statistics compared to competitive baselines including the Fourier Neural Operator and the Markov Neural Operator
 
-## Dispative Chaotic system demo
+## Dissipative Chaotic system demo
 
 ### Lorenz 96 (1D, Dimension 80)
 
@@ -37,7 +37,6 @@ Model performance in short-term forecasting accuracy in absolute error with stat
     </div>
   </div>
 </div>
-
 
 ## Install and dependence
 
