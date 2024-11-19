@@ -10,3 +10,6 @@
 /scripts/NS_train_contract.py
 # /scripts/L96_train_contract.py
 /scripts/L96_train_invariant.py
+
+rebuttal.md
+figures/.DS_Store
