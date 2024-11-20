@@ -25,32 +25,51 @@ Table of contents
 
 Check the code notebook url for further details. Here's a quick preview of the results:
 
-#### (1) ESN model performance on Lorenz 63 state forecasting task
+<div style="display: flex; justify-content: space-between; align-items: flex-start; font-family: Arial, sans-serif; line-height: 1.5;">
+  <!-- Column 1: ESN on Lorenz 63 -->
+  <div style="flex: 1; margin-right: 20px; max-width: 48%;">
+    <h2 style="margin-bottom: 10px;">(1) ESN model performance on Lorenz 63 state forecasting task</h2>
+    <img src="figures/updates/ESN_63.png" alt="ESN_Lorenz63" style="width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+  </div>
+  <!-- Column 2: ESN on KS -->
+  <div style="flex: 1; max-width: 48%;">
+    <h2 style="margin-bottom: 10px;">(2) ESN model performance on KS state forecasting task</h2>
+    <img src="figures/updates/ESN_ks.png" alt="ESN_KS" style="width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+  </div>
 
-![ESN_Lorenz63](figures/updates/ESN_63.png)
-
-#### (2) ESN model performance on KS state forecasting task
-
-![ESN_KS](figures/updates/ESN_ks.png)
+</div>
 
 ### **Update ! New Illustration of Contraction Constraint Effects on Operator and Results on Scaling PFNN to Dimension 256x256 NS Resolution Suggested by Reviewer pS8g**
 
-#### (1) An illustrative eigenvalues plots of the operators trained with different constraints
+#### (1) An illustrative eigenvalues/physical contraction plots of the trained operators 
 
-<!-- (1) The eigenvalues plot of non-PFNN constrainted operator, PFNN-contraction constrainted operator $G_c$ and PFNN-measure-invariant constrainted operator $G_m$ on task Lorenz96 (Dimension=80).
+| Fig.1 The eigenvalues plot of non-PFNN constrained operator,<br />PFNN-contraction constrained operator $G_c$,<br />and PFNN-measure-invariant constrained operator $G_m$<br /> on the task Lorenz96 (Dimension=80). | Fig.2 The eigenvalues plot of non-PFNN constrained operator,<br />PFNN-contraction constrained operator $G_c$ <br />and PFNN-measure-invariant constrained operator $G_m$ <br />on the task KS (Dimension=128). |
+| :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                                         ![eigenvalues_3_operators_L96_S80](figures/updates/Eigenvalues_L96_S80.png)                                                                         |                                                                           ![eigenvalues_3_operators_KS](figures/updates/Eigenvalues_KS.png)                                                                           |
 
-![eigenvalues_3_operators_L96_S80](figures/Eigenvalues_L96_S80.png)
+**Fig.3 Contraction in physical vector field - A visualization of PFNN_contraction model prediction on Lorenz 63 system:**
 
-(2) The eigenvalues plot of non-PFNN constrainted operator, PFNN-contraction constrainted operator $G_c$ and PFNN-measure-invariant constrainted operator $G_m$ on task Lorenz96 (Dimension=80).
-![eigenvalues_3_operators_KS](figures/Eigenvalues_KS.png) -->
-
-| (1) The eigenvalues plot of non-PFNN constrained operator, PFNN-contraction constrained operator $G_c$ and PFNN-measure-invariant constrained operator $G_m$ on the task Lorenz96 (Dimension=80). | (2) The eigenvalues plot of non-PFNN constrained operator, PFNN-contraction constrained operator $G_c$ and PFNN-measure-invariant constrained operator $G_m$ on the task KS (Dimension=128). |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|                                                              ![eigenvalues_3_operators_L96_S80](figures/updates/Eigenvalues_L96_S80.png)                                                              |                                                                 ![eigenvalues_3_operators_KS](figures/updates/Eigenvalues_KS.png)                                                                 |
+<div style="display: flex; justify-content: space-between; align-items: flex-start; font-family: Arial, sans-serif; line-height: 1.5;">
+  <!-- XY Field -->
+  <div style="flex: 1; margin-right: 10px; text-align: center;">
+    <img src="figures/updates/physics contraction/xy_vector.png" alt="XY Field" style="width: 100%; max-width: 300px; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+    <figcaption style="margin-top: 10px; font-size: 14px;">XY Field</figcaption>
+  </div>
+  <!-- XZ Field -->
+  <div style="flex: 1; margin-right: 10px; text-align: center;">
+    <img src="figures/updates/physics contraction/xz_vector.png" alt="XZ Field" style="width: 100%; max-width: 300px; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+    <figcaption style="margin-top: 10px; font-size: 14px;">XZ Field</figcaption>
+  </div>
+  <!-- YZ Field -->
+  <div style="flex: 1; text-align: center;">
+    <img src="figures/updates/physics contraction/yz_vector.png" alt="YZ Field" style="width: 100%; max-width: 300px; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+    <figcaption style="margin-top: 10px; font-size: 14px;">YZ Field</figcaption>
+  </div>
+</div>
 
 #### (2) Scaling PFNN to more challenging and higher dimensional 2D Kolmogorov Flow
 
-**Short-Term prediction**
+**Fig.1 Short-Term prediction**
 
 <div style="width: 100%; display: table;">
   <div style="display: table-row;">
@@ -69,7 +88,7 @@ Check the code notebook url for further details. Here's a quick preview of the r
   </div>
 </div>
 
-**Long-term invariant statistics**
+**Fig.2 Long-term invariant statistics**
 
 <div style="width: 100%; display: table;">
   <div style="display: table-row;">
@@ -86,7 +105,106 @@ Check the code notebook url for further details. Here's a quick preview of the r
 
 ### **Update ! New Results Suggested by Reviewer GyXm**
 
-Wall clock time for baseline and PFNN predictions. (Running for 10 times resulting in mean used time and standard deviations)
+#### **(1) Trainable paprameters of baselines and PFNN modules**.
+
+We post a concise table to help the reviewer to percieve **how many parameters are used for learning tasks from low dimensional chaos to high dimensional one.**
+
+| System         | DenseNet  | Koopman   | LSTM      | MNO       | PFNN (Contract) | PFNN (Consist) |
+| -------------- | --------- | --------- | --------- | --------- | --------------- | -------------- |
+| Lorenz63 (m=3) | 114,303   | 182,253   | 200,903   | 114,303   | 114,153         | 117,073        |
+| NS (m=64x64)   | 4,507,489 | 7,653,630 | 7,873,444 | 4,877,289 | 4,425,826       | 4,746,264      |
+
+#### **(2) Computation Complexity and Wall Clock time for baselines and PFNN predictions.**
+
+**(2-1)** This section provides a comparison of the computational complexity of **LSTM**, **Koopman Autoencoder**, and **Fourier Neural Operator (FNO)** for a **single forward pass** for **one-time prediction**. The analysis includes **gate units** and **matrix multiplication** complexities.
+
+<!-- **Notation**
+
+- **Input Dimension** $d$
+- **Hidden Units / Latent Dimension** $h$
+- **Grid Size** $N$ for FNO
+- **Number of Layers** $L$
+- **Number of Blocks** $M$ for LSTM blocks, Fourier blocks in MNO
+- **Sequence Length** $T$
+
+**Complexity Comparison Table**
+
+| Method                                  | Computation Complexity         |
+| --------------------------------------- | ------------------------------ |
+| **LSTM**                          | $ O(4MTdh + 4MTh^2)$         |
+| **Koopman Operator**              | $ O(2Tdh + (L-2)Th^2)$       |
+| **Fourier Neural Operator (FNO)** | $ O(MTN\log N + TMd^2 N)$    |
+| **Markov Neural operator (MNO)**  | $ O(MTN\log N + TMd^2 N)$    |
+| **PFNN**                          | $ O(2Tdh + (L-2)Th^2 + h^3)$ |
+
+**Summary**
+
+- **LSTM**:
+  Each of the four LSTM gates (input, forget, output, candidate) requires computations proportional to $d*h + h^2$.
+- **Koopman Operator**:
+  Each typically consists of $L-2$ layers with operations scaling as $O((L-2)h^2)$ and encoder/dercoder with complexity $O(2dh)$.
+- **FNO/MNO**:
+  The computation complexity of FFT is $O(N\log N)$ and matrix multiplication $d^2 N$.
+- **PFNN**:
+  Each typically consists of $L-2$ layers with operations scaling as $O((L-2)h^2)$, encoder/dercoder with complexity $O(2Tdh)$ and eigendecomposition $O(h^3)$ at the worst case. -->
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; font-family: Arial, sans-serif; line-height: 1.5;">
+  <!-- Notation Block -->
+  <div style="flex: 1; margin-right: 20px; max-width: 30%;">
+    <h2 style="margin-bottom: 10px;">Notation</h2>
+    <ul style="list-style-type: disc; padding-left: 20px; margin: 0;">
+      <li><strong>Input Dimension</strong> <em>d</em></li>
+      <li><strong>Hidden Units / Latent Dimension</strong> <em>h</em></li>
+      <li><strong>Grid Size</strong> <em>N</em> for FNO</li>
+      <li><strong>Number of Layers</strong> <em>L</em></li>
+      <li><strong>Number of Blocks</strong> <em>M</em> for LSTM blocks, Fourier blocks in MNO</li>
+      <li><strong>Sequence Length</strong> <em>T</em></li>
+    </ul>
+  </div>
+  <!-- Complexity Comparison Table -->
+  <div style="flex: 1; margin-right: 20px; max-width: 40%;">
+    <h2 style="margin-bottom: 10px;">Complexity Comparison Table</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Method</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Computation Complexity</th>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc;">LSTM</td>
+        <td style="padding: 8px; border: 1px solid #ccc;">O(4MTdh + 4MTh²)</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc;">Koopman Operator</td>
+        <td style="padding: 8px; border: 1px solid #ccc;">O(2Tdh + (L-2)Th²)</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc;">Fourier Neural Operator (FNO)</td>
+        <td style="padding: 8px; border: 1px solid #ccc;">O(MTNlogN + TMd²N)</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc;">Markov Neural Operator (MNO)</td>
+        <td style="padding: 8px; border: 1px solid #ccc;">O(MTNlogN + TMd²N)</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc;">PFNN</td>
+        <td style="padding: 8px; border: 1px solid #ccc;">O(2Tdh + (L-2)Th² + h³)</td>
+      </tr>
+    </table>
+  </div>
+  <!-- Summary Block -->
+  <div style="flex: 1; max-width: 30%;">
+    <h2 style="margin-bottom: 10px;">Summary</h2>
+    <ul style="list-style-type: disc; padding-left: 20px; margin: 0;">
+      <li><strong>LSTM:</strong> Each of the four LSTM gates (input, forget, output, candidate) requires computations proportional to <em>d*h + h²</em>.</li>
+      <li><strong>Koopman Operator:</strong> Each typically consists of <em>L-2</em> layers with operations scaling as <em>O((L-2)h²)</em> and encoder/decoder complexity <em>O(2dh)</em>.</li>
+      <li><strong>FNO/MNO:</strong> The computation complexity of FFT is <em>O(NlogN)</em> and matrix multiplication is <em>d²N</em>.</li>
+      <li><strong>PFNN:</strong> Each typically consists of <em>L-2</em> layers with operations scaling as <em>O((L-2)h²)</em>, encoder/decoder complexity <em>O(2Tdh)</em>, and eigendecomposition <em>O(h³)</em> at the worst case.</li>
+    </ul>
+  </div>
+
+</div>
+
+**(2-2)** We post a concise table to show **how many seconds each model uses to predict 100 steps for a typical medium dimensional chaos system**. (Data run *for 10 rounds resulting in mean used time and standard deviations*)
 
 <div style="display: flex; align-items: center;">
   <div style="flex: 1; margin-right: 20px;">
@@ -101,33 +219,33 @@ Wall clock time for baseline and PFNN predictions. (Running for 10 times resulti
       <tbody>
         <tr>
           <td>FNO</td>
-          <td>0.007735</td>
-          <td>0.000919</td>
+          <td>0.378181</td>
+          <td>0.029658</td>
         </tr>
         <tr>
           <td>LSTM</td>
-          <td>0.005702</td>
-          <td>0.000214</td>
+          <td>0.3903</td>
+          <td>0.018972</td>
         </tr>
         <tr>
           <td>Koopman</td>
-          <td>0.015555</td>
-          <td>0.000269</td>
+          <td>0.571751</td>
+          <td>0.027942</td>
         </tr>
         <tr>
           <td>MNO</td>
-          <td>0.007597</td>
-          <td>0.000773</td>
+          <td>0.478575</td>
+          <td>0.007105</td>
         </tr>
         <tr>
           <td>PFNN_contract</td>
-          <td>0.009644</td>
-          <td>0.000306</td>
+          <td>0.37564</td>
+          <td>0.006232</td>
         </tr>
         <tr>
           <td>PFNN_consist</td>
-          <td>0.007097</td>
-          <td>0.000215</td>
+          <td>0.547125</td>
+          <td>0.015539</td>
         </tr>
       </tbody>
     </table>
@@ -145,7 +263,7 @@ Wall clock time for baseline and PFNN predictions. (Running for 10 times resulti
 
 ![1727441482180](image/README/1727441482180.png)
 
-### KS (1D, Dimension128)
+### Kuramoto-Sivashinsky (1D, Dimension128)
 
 ![1727441582689](image/README/1727441582689.png)
 
