@@ -167,7 +167,7 @@ for ep in range(1, epochs + 1):
             
             loss_consist = abs(torch.trace(torch.mm(B,A))/(torch.trace(B)*torch.trace(A)) - 1)
 
-        loss = loss_fwd + 1 * loss_identity +  0.1 * loss_bwd + gamma_2 * loss_consist
+        loss = loss_fwd + loss_identity +  0.1 * loss_bwd + gamma_2 * loss_consist
         
         train_l2.append(loss_fwd.item())
         train_id.append(loss_identity.item())

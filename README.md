@@ -11,9 +11,9 @@ Table of contents
 =================
 
 * [Updates for ICLR 2025 Rebuttal Session.](#updates-for-iclr-2025-rebuttal-session)
-  * [Update to Reviewer CMhA: New Echo State Network (ESN) Results](#update--new-echo-state-network-esn-results)
-  * [Update to Reviewer pS8g: New Illustration of Contraction Constraint Effects on Operator and Results on Scaling PFNN to Dimension 256x256 NS Resolution](#update--new-results-of-scaling-pfnn-to-dimension-256x256-ns-resolution-suggested-by-reviewer-ps8g)
-  * [Update to Reviewer GyXm: New Results Suggested by Reviewer GyXm](#update--new-results-of-scaling-pfnn-to-dimension-256x256-ns-resolution-suggested-by-reviewer-gyxm)
+  * [Update to Reviewer CMhA: New Echo State Network (ESN) Results](#update--new-echo-state-network-esn-results-suggested-by-reviewer-cmha)
+  * [Update to Reviewer pS8g: New Illustration of Contraction Constraint Effects on Operator and Results on Scaling PFNN to Dimension 256x256 NS Resolution](#update--new-illustration-of-contraction-constraint-effects-on-operator-and-results-on-scaling-pfnn-to-dimension-256x256-ns-resolution-suggested-by-reviewer-ps8g)
+  * [Update to Reviewer GyXm: New Results of Wall Clock Time of Predictions Suggested by Reviewer GyXm](#update--new-results-suggested-by-reviewer-gyxm)
 * [Dissipative Chaotic Systems State Forecasting Expresso](#dissipative-chaotic-systems-state-forecasting-expresso)
   * [Lorenz 96 (1D, Dimension 80)](#lorenz-96-1d-dimension-80)
   * [KS (1D, Dimension128)](#ks-1d-dimension128)
@@ -33,7 +33,7 @@ Check the code notebook url for further details. Here's a quick preview of the r
 
 ![ESN_KS](figures/updates/ESN_ks.png)
 
-### **Update !** **New Results of Scaling PFNN to Dimension 256x256 NS Task Suggested by Reviewer pS8g**
+### **Update ! New Illustration of Contraction Constraint Effects on Operator and Results on Scaling PFNN to Dimension 256x256 NS Resolution Suggested by Reviewer pS8g**
 
 #### (1) An illustrative eigenvalues plots of the operators trained with different constraints
 
@@ -81,11 +81,63 @@ Check the code notebook url for further details. Here's a quick preview of the r
       <h6 style="font-size: 18px;">Truth and Error of Mean State</h6>
       <img src="figures/updates/Mean_state.png" alt="GIF 2" style="width: 100%;">
     </div>
+  </div>
 </div>
 
-### **Update !** **New Results Suggested by Reviewer GyXm**
+### **Update ! New Results Suggested by Reviewer GyXm**
 
-Potential update - relaxation time k
+Wall clock time for baseline and PFNN predictions. (Running for 10 times resulting in mean used time and standard deviations)
+
+<div style="display: flex; align-items: center;">
+  <div style="flex: 1; margin-right: 20px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Mean Time (seconds)</th>
+          <th>Std Time (seconds)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>FNO</td>
+          <td>0.007735</td>
+          <td>0.000919</td>
+        </tr>
+        <tr>
+          <td>LSTM</td>
+          <td>0.005702</td>
+          <td>0.000214</td>
+        </tr>
+        <tr>
+          <td>Koopman</td>
+          <td>0.015555</td>
+          <td>0.000269</td>
+        </tr>
+        <tr>
+          <td>MNO</td>
+          <td>0.007597</td>
+          <td>0.000773</td>
+        </tr>
+        <tr>
+          <td>PFNN_contract</td>
+          <td>0.009644</td>
+          <td>0.000306</td>
+        </tr>
+        <tr>
+          <td>PFNN_consist</td>
+          <td>0.007097</td>
+          <td>0.000215</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><em>Table: Wall Clock Time for models prediction 100 steps on L96 (Dimension = 80) Task</em></p>
+  </div>
+  <div style="flex: 1; text-align: center;">
+    <img src="figures/updates/wall_clocks/L96_100steps.png" alt="Wall Clock Time Plot" style="max-width: 100%; height: auto;">
+    <p><em>Figure: Wall Clock Time for models prediction 100 steps on L96 (Dimension = 80) Task</em></p>
+  </div>
+</div>
 
 ## Dissipative Chaotic Systems State Forecasting Expresso
 
