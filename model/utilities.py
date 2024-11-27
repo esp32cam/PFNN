@@ -20,7 +20,7 @@ from scipy.stats import gaussian_kde
 # Utilities:
 #
 #################################################
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 #################################################
@@ -126,6 +126,31 @@ def plot_comparison(truth_data, pred_data_list, mean_diff_list, titles, colorbas
     # fig.savefig('2d_ns_re40_' + title[1][:3] + '.png', dpi=600, bbox_inches='tight')
     # Show the plot
     plt.show()
+
+
+### long prediction ablation ###
+def long_prediction(model, test_a, id, steps_per_sec, out_dim, in_dim, T=10000):
+      model.eval()
+      # id = id*T
+      test_a_0 = test_a[id]
+
+      pred = torch.zeros(T, out_dim)
+      out = test_a_0.reshape(1,in_dim).to(device)
+      with torch.no_grad():
+            for i in range(T):
+                  try:
+                        out = model(out, mode='forward')[0][0]
+                  except Exception as e_koopman:
+                        try:
+                              out = model(out.reshape(1, in_dim))[0]
+                        except Exception as e_ae:
+                              try:
+                                    out = model(out.reshape(1, in_dim, 1))
+                              except Exception as e_default:
+                                    print(f"All model attempts failed: koopman error: {e_koopman}, ae error: {e_ae}, default error: {e_default}")
+                                    out = None 
+      pred[i] = out.view(out_dim,)
+      return pred
 
 ### Functions to caluculate KL divergence between two distributions ###
 def calculate_kde(data):
