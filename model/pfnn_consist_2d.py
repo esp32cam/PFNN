@@ -4,8 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from functools import reduce
 import operator
-from vae_base import *
-from restormer_arch import *
+from .koopman_base import *
+from .restormer_arch import *
 
 import pdb
 

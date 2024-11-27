@@ -12,7 +12,7 @@ def gaussian_init_(n_units, std=1):
     return Omega
 
 
-# A VAE neural network
+# AE neural network
 class EncoderNet(nn.Module):
     def __init__(self, layers, nonlinearity , variational = False):
         super(EncoderNet, self).__init__()
@@ -155,7 +155,7 @@ class KoopmanAE(nn.Module):
         return self.encoder.count_params() + self.dynamics.count_params() + self.backdynamics.count_params() + self.decoder.count_params()
 
 
-# VAE architecture with forward operator
+# AE architecture with forward operator 1
 class VAE_fwd(nn.Module):
     def __init__(self, encoder_layers, forward_layers, decoder_layers, nonlinearity, variational = True):
         super(VAE_fwd, self).__init__()
@@ -181,7 +181,7 @@ class VAE_fwd(nn.Module):
     def count_params(self):     
         return self.encoder.count_params() + self.decoder.count_params() + self.forward_operator.count_params()
 
-# AE architecture with forward operator
+# AE architecture with forward operator 2
 class AE_fwd(nn.Module):
     def __init__(self, encoder_layers, forward_layers, decoder_layers, nonlinearity):
         super(AE_fwd, self).__init__()

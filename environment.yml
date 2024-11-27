@@ -247,4 +247,6 @@ dependencies:
       - pytz==2024.1
       - seaborn==0.13.2
       - tzdata==2024.1
+      - mayavi==4.7.3
+      - PyQt5==5.15.4
 prefix: /home/yiming/miniconda3/envs/pytorch
