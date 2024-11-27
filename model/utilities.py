@@ -10,6 +10,11 @@ from prettytable import PrettyTable
 import matplotlib
 import matplotlib.pyplot as plt
 
+from sklearn.decomposition import PCA
+
+import numpy.random as random
+from scipy.stats import gaussian_kde
+
 #################################################
 #
 # Utilities:
@@ -122,6 +127,72 @@ def plot_comparison(truth_data, pred_data_list, mean_diff_list, titles, colorbas
     # Show the plot
     plt.show()
 
+### Functions to caluculate KL divergence between two distributions ###
+def calculate_kde(data):
+    """
+    Parameters:
+    - data: A numpy array of shape (N, n) where N is the number of samples 
+    and n is the number of dimensions.
+
+    Returns:
+    - A list of Kernel Density Estimate (KDE) objects for each dimension.
+    """
+    # Transpose data to fit (n, N) shape
+    data_T = data.T
+
+    # Initialize a list to hold KDE results
+    kde_results = []
+
+    # Calculate KDE for each dimension
+    for dimension_data in data_T:
+        kde = gaussian_kde(dimension_data)
+        kde_results.append(kde)
+    
+    return kde_results
+
+def calculate_kde_joint(data):
+    """
+    Parameters:
+    - data: A numpy array of shape (N, n) where N is the number of samples and n is the number of dimensions.
+
+    Returns:
+    - A KDE object representing the joint KDE.
+    """
+    # Calculate the joint KDE
+    kde_joint_result = gaussian_kde(data.T)
+    
+    return kde_joint_result
+
+def kl_divergence(kde_p, kde_q, x_range):
+    """
+    Calculate the KL divergence between two KDEs.
+
+    Parameters:
+    - kde_p: The first KDE (a gaussian_kde object).
+    - kde_q: The second KDE (a gaussian_kde object).
+    - x_range: A numpy array of x values over which to evaluate the KDEs.
+
+    Returns:
+    - The KL divergence value.
+    """
+    # Evaluate the KDEs over the x range
+    p_x = kde_p(x_range)
+    print('p_x:', p_x, 'p_x shape:', len(p_x))
+    q_x = kde_q(x_range)
+    print('q_x:', q_x, 'q_x shape:', len(q_x))
+ 
+    
+    # Replace zeros to avoid division by zero or log of zero
+    p_x[p_x == 0] = np.finfo(float).eps
+    q_x[q_x == 0] = np.finfo(float).eps
+
+    # Compute the log ratio
+    log_ratio = p_x * np.log(p_x / q_x)
+
+    # Estimate the KL divergence as the sum of the log ratio, weighted by p_x
+    kl_div = np.sum(log_ratio)
+
+    return kl_div
 
 # reading data
 class MatReader(object):
