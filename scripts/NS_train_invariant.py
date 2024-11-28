@@ -56,7 +56,7 @@ sub = 1 # spatial subsample
 S = 64 # size of image, also the domain size
 s = S // sub
 
-T_in = 200 # skip first 100 seconds of each trajectory to let trajectory reach attractor
+T_in = 200 # skip first 200 seconds of each trajectory to let trajectory reach attractor
 T = 300 # seconds to extract from each trajectory in data
 T_out = T_in + T
 step = 1 # Seconds to learn solution operator

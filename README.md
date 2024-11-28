@@ -110,7 +110,8 @@ We post a concise table to help the reviewer to percieve **how many parameters a
 
 | System         | DenseNet  | Koopman   | LSTM      | MNO       | PFNN (Contract) | PFNN (Consist) |
 | -------------- | --------- | --------- | --------- | --------- | --------------- | -------------- |
-| Lorenz63 (m=3) | 114,303   | 182,253   | 200,903   | 114,303   | 114,153         | 117,073        |
+| Lorenz63 (m=3) | 114,303   | 182,253   | 18,078   | 114,303   | 114,153         | 117,073        |
+| System         | FNO  | Koopman   | LSTM      | MNO       | PFNN (Contract) | PFNN (Consist) |
 | NS (m=64x64)   | 4,507,489 | 7,653,630 | 7,873,444 | 4,877,289 | 4,425,826       | 4,746,264      |
 
 **Example of Koopman (from pykoopman) baseline model structure for Lorenz 63 system.**
