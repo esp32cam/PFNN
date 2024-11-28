@@ -13,7 +13,7 @@ import os
 import sys
 sys.path.append('../')
 sys.path.append('../model')
-from vae_base import *
+from koopman_base import *
 from utilities import *
 
 torch.manual_seed(0)
@@ -33,7 +33,7 @@ if random_select:
 else:
       total_components = main_component + add_component    
 
-data_raw = np.load('../lake/data/L96_data_dim80.npy')
+data_raw = np.load('../lake/data/L96_data_dim80_path')
 data_main = torch.tensor(data_raw[...,:main_component], dtype=torch.float)
 data_total = torch.tensor(data_raw[...,:total_components], dtype=torch.float)
 

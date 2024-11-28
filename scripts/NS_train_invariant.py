@@ -22,7 +22,7 @@ torch.manual_seed(0)
 np.random.seed(0)
 
 # uncomment for full data processing when on device
-data = np.load('../data/2D_NS_Re40.npy')
+data = np.load('../lake/data/2D_NS_Re40_path')
 print('Data shape:', data.shape)
 
 # Main
