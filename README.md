@@ -11,33 +11,15 @@ Table of contents
 =================
 
 * [Updates for ICLR 2025 Rebuttal Session.](#updates-for-iclr-2025-rebuttal-session)
-  * [Update to Reviewer CMhA: New Echo State Network (ESN) Results](#update--new-echo-state-network-esn-results-suggested-by-reviewer-cmha)
   * [Update to Reviewer pS8g: New Illustration of Contraction Constraint Effects on Operator and Results on Scaling PFNN to Dimension 256x256 NS Resolution](#update--new-illustration-of-contraction-constraint-effects-on-operator-and-results-on-scaling-pfnn-to-dimension-256x256-ns-resolution-suggested-by-reviewer-ps8g)
   * [Update to Reviewer GyXm: Training Parameters and New Results of Wall Clock Time of Predictions ](#update--new-results-suggested-by-reviewer-gyxm)
+  * [Update to Reviewer CMhA: New Echo State Network (ESN) Results (a non-official implementation due to lack of offical open source)](#update--new-echo-state-network-esn-results-suggested-by-reviewer-cmha)
 * [Dissipative Chaotic Systems State Forecasting Expresso](#dissipative-chaotic-systems-state-forecasting-expresso)
   * [Lorenz 96 (1D, Dimension 80)](#lorenz-96-1d-dimension-80)
   * [KS (1D, Dimension128)](#ks-1d-dimension128)
   * [Kolmogorov Flow (2D, Dimension 64 $\times$ 64)](#kolmogorov-flow-2d-dimension-64-x-64)
 
 ## **Updates for ICLR 2025 Rebuttal Session.**
-
-### **Update ! [New Echo State Network (ESN) Results](./ESN_Lorenz63_KS.ipynb) Suggested by Reviewer CMhA**
-
-Check the code notebook url for further details. Here's a quick preview of the results:
-
-<div style="display: flex; justify-content: space-between; align-items: flex-start; font-family: Arial, sans-serif; line-height: 1.5;">
-  <!-- Column 1: ESN on Lorenz 63 -->
-  <div style="flex: 1; margin-right: 20px; max-width: 48%;">
-    <h2 style="margin-bottom: 10px;">(1) ESN model performance on Lorenz 63 state forecasting task</h2>
-    <img src="figures/updates/ESN_63.png" alt="ESN_Lorenz63" style="width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
-  </div>
-  <!-- Column 2: ESN on KS -->
-  <div style="flex: 1; max-width: 48%;">
-    <h2 style="margin-bottom: 10px;">(2) ESN model performance on KS state forecasting task</h2>
-    <img src="figures/updates/ESN_ks.png" alt="ESN_KS" style="width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
-  </div>
-</div>
-
 ### **Update ! New Illustration of Contraction Constraint Effects on Operator and Results on Scaling PFNN to Dimension 256x256 NS Resolution Suggested by Reviewer pS8g**
 
 #### (1) An illustrative eigenvalues/physical contraction plots of the trained operators
@@ -259,6 +241,26 @@ We post a concise table to help the reviewer to percieve **how many parameters a
   <div style="flex: 1; text-align: center;">
     <img src="figures/updates/wall_clocks/L96_100steps.png" alt="Wall Clock Time Plot" style="max-width: 100%; height: auto;">
     <p><em>Figure: Wall Clock Time for models prediction 100 steps on L96 (Dimension = 80) Task</em></p>
+  </div>
+</div>
+
+
+### **Update ! [New Echo State Network (ESN) Results](./ESN_Lorenz63_KS.ipynb) Suggested by Reviewer CMhA**
+
+Check the code notebook url for further details. This is a non-official implementation of ESN. Please credit to repository *pyESN* for the contribution to fill in the gap. The authors are also waiting for the official code from the reviewer provided references.
+
+Here's a quick preview of the results of the PyTorch version of pyESN:
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; font-family: Arial, sans-serif; line-height: 1.5;">
+  <!-- Column 1: ESN on Lorenz 63 -->
+  <div style="flex: 1; margin-right: 20px; max-width: 48%;">
+    <h2 style="margin-bottom: 10px;">(1) ESN model performance on Lorenz 63 state forecasting task</h2>
+    <img src="figures/updates/ESN_63.png" alt="ESN_Lorenz63" style="width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+  </div>
+  <!-- Column 2: ESN on KS -->
+  <div style="flex: 1; max-width: 48%;">
+    <h2 style="margin-bottom: 10px;">(2) ESN model performance on KS state forecasting task</h2>
+    <img src="figures/updates/ESN_ks.png" alt="ESN_KS" style="width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
   </div>
 </div>
 
