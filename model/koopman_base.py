@@ -186,7 +186,6 @@ class AE_fwd(nn.Module):
     def __init__(self, encoder_layers, forward_layers, decoder_layers, nonlinearity):
         super(AE_fwd, self).__init__()
         self.encoder = EncoderNet(layers = encoder_layers, nonlinearity = nonlinearity)
-        # self.forward_operator = EncoderNet(layers = forward_layers, nonlinearity = nonlinearity)
         assert forward_layers[0] == forward_layers[1], 'forward operator must be a square matrix'
         self.forward_operator = nn.Linear(forward_layers[0], forward_layers[1], bias = False)
         self.decoder = DecoderNet(layers = decoder_layers, nonlinearity = nonlinearity)
@@ -202,26 +201,3 @@ class AE_fwd(nn.Module):
     def count_params(self):     
         return self.encoder.count_params() + self.decoder.count_params() # + self.forward_operator.count_params()
 
-
-# vanilla VAE architecture
-class VAE(nn.Module):
-    def __init__(self, encoder_layers, decoder_layers, nonlinearity):
-        super(VAE, self).__init__()
-        self.encoder = EncoderNet(layers = encoder_layers, nonlinearity = nonlinearity)
-        self.decoder = DecoderNet(layers = decoder_layers, nonlinearity = nonlinearity)
-
-    def reparameterize(self, mu, logvar):
-        # equals to draw a sample from Gaussian distribution
-        std = torch.exp(0.5*logvar)
-        eps = torch.randn_like(std)
-        return mu + eps*std   
-     
-    def forward(self, x):
-        mu, logvar = self.encoder(x)
-        z = self.reparameterize(mu, logvar)
-        x_pred = self.decoder(z)
-      #   x_identity = self.decoder(mu)
-        return x_pred, mu, logvar
-
-    def count_params(self):     
-        return self.encoder.count_params() + self.decoder.count_params()
