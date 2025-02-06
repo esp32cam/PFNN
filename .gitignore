@@ -6,6 +6,9 @@
 
 /lake/data/*
 /lake/models/*
+/lake/data_generation/*
+
+/ablation_notebooks/*
 
 /scripts/NS_train_contract.py
 # /scripts/L96_train_contract.py
@@ -13,3 +16,6 @@
 
 rebuttal.md
 figures/.DS_Store
+
+ESN_Lorenz63_KS.ipynb
+
