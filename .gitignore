@@ -6,16 +6,14 @@
 
 /lake/data/*
 /lake/models/*
-/lake/data_generation/*
-
-/ablation_notebooks/*
+ESN_Lorenz63_KS.ipynb
 
 /scripts/NS_train_contract.py
 # /scripts/L96_train_contract.py
 /scripts/L96_train_invariant.py
 
-rebuttal.md
-figures/.DS_Store
-
-ESN_Lorenz63_KS.ipynb
+*rebuttal*.md
+*figures/.DS_Store
+*image*
+/image/*
 
