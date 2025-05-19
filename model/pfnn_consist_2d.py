@@ -88,10 +88,10 @@ class KoopmanAE_2d_trans(nn.Module):
         out_back = []
         out_back_id = []
         if self.grid_dim > 0:
-            grid = self.get_grid(x.shape[1], x.shape[0], x.device)
-            x_grid = torch.cat((x, grid.permute(0, 2, 3, 1)), dim=-1)
-            x_grid = x_grid.permute(0, 3, 1, 2)
-        
+            grid = self.get_grid(x.shape[2], x.shape[0], x.device)
+            x_grid = torch.cat((x, grid), dim=1)
+        else:
+            x_grid = x
         z = self.encoder(x_grid.contiguous())
         qt = z.contiguous().reshape(z.size(0), -1) # flatten to [batch, self.latent_dim * 2 * 2] 
 
@@ -101,7 +101,7 @@ class KoopmanAE_2d_trans(nn.Module):
                 # q_t = q_t1 # if steps > 1, latent update should be autoregressive 
                 q_t1 = q_t1.view(q_t1.size(0), self.latent_dim, 2, 2)
                 out.append(self.decoder(q_t1))
-            out_id.append(self.decoder(z.contiguous())) 
+            out_id.append(self.decoder(z.contiguous()))
             return out, out_id  
 
         if mode == 'backward':
@@ -109,8 +109,7 @@ class KoopmanAE_2d_trans(nn.Module):
                 q_1t = self.backdynamics(qt)
                 q_1t = q_1t.view(q_1t.size(0), self.latent_dim, 2, 2)
                 out_back.append(self.decoder(q_1t))
-
-            out_back_id.append(self.decoder(z.contiguous())) 
+            out_back_id.append(self.decoder(z.contiguous()))
             return out_back, out_back_id
         
     def get_grid(self, S, batchsize, device):
@@ -214,10 +213,10 @@ class KoopmanAE_2d_trans_svd(nn.Module):
         out_back = []
         out_back_id = []
         if self.grid_dim > 0:
-            grid = self.get_grid(x.shape[1], x.shape[0], x.device)
-            x_grid = torch.cat((x, grid.permute(0, 2, 3, 1)), dim=-1)
-            x_grid = x_grid.permute(0, 3, 1, 2)
-        
+            grid = self.get_grid(x.shape[2], x.shape[0], x.device)
+            x_grid = torch.cat((x, grid), dim=1)
+        else:
+            x_grid = x
         z = self.encoder(x_grid.contiguous())
         qt = z.contiguous().reshape(z.size(0), -1) # flatten to [batch, self.latent_dim * 2 * 2] 
 
@@ -298,10 +297,10 @@ class KoopmanAE_2d(nn.Module):
         out_back = []
         out_back_id = []
         if self.grid_dim > 0:
-            grid = self.get_grid(x.shape[1], x.shape[0], x.device)
-            x_grid = torch.cat((x, grid.permute(0, 2, 3, 1)), dim=-1)
-            x_grid = x_grid.permute(0, 3, 1, 2)
-        
+            grid = self.get_grid(x.shape[2], x.shape[0], x.device)
+            x_grid = torch.cat((x, grid), dim=1)
+        else:
+            x_grid = x
         z = self.encoder(x_grid.contiguous())
         qt = z.contiguous().reshape(z.size(0), -1) # flatten to [batch, 128 * 2 * 2] 
 
