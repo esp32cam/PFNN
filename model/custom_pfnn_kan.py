@@ -66,9 +66,8 @@ class KoopmanAE_2d_kan(nn.Module):
         out_back = []
         out_back_id = []
         if self.grid_dim > 0:
-            grid = self.get_grid(x.shape[1], x.shape[0], x.device)
-            x_grid = torch.cat((x, grid.permute(0, 2, 3, 1)), dim=-1)
-            x_grid = x_grid.permute(0, 3, 1, 2)
+            grid = self.get_grid(x.shape[2], x.shape[0], x.device)
+            x_grid = torch.cat((x, grid), dim=1)
         else:
             x_grid = x
         z = self.encoder(x_grid.contiguous())
