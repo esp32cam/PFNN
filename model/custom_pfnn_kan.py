@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from functools import reduce
 import operator
-from .koopman_base import *
+from koopman_base import *
 
 # Minimal KAN block (replace with your advanced KAN if available)
 class KANBlock(nn.Module):
