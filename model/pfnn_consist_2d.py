@@ -132,7 +132,7 @@ class KoopmanAE_2d_trans_svd(nn.Module):
         self.steps = steps
         self.steps_back = steps_back
         self.latent_dim = dim * 32
-        self.svd_dim = int(torch.sqrt(self.latent_dim))
+        self.svd_dim = int(torch.sqrt(torch.tensor(self.latent_dim, dtype=torch.float32)))
         
         if grid_info:
             self.grid_dim = 2
