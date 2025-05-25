@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from pyts.image import RecurrencePlot
 import seaborn as sns
 from model_library import get_model
-from utils import estimate_lyapunov, multi_embed, compare_rollout_to_true, plot_spectrum, plot_invariant_density
+from utils import estimate_lyapunov, multi_embed, compare_rollout_to_true, plot_spectrum, plot_invariant_density, model_step
 
 # --- Load your preprocessed data ---
 from tvDatafeed import TvDatafeed, Interval
@@ -52,9 +52,10 @@ for model_name in model_names:
     # Forecast
     z = [latent_tensor[0]]
     for _ in range(k - 1):
-        z.append(model(z[-1].unsqueeze(0), mode='contract')[0].squeeze(0))
+        z.append(model_step(model, z[-1].unsqueeze(0), 'contract'))
     for _ in range(len(latent_tensor) - k):
-        z.append(model(z[-1].unsqueeze(0), mode='invariant').squeeze(0))
+        z.append(model_step(model, z[-1].unsqueeze(0), 'invariant'))
+
     z_pred = torch.stack(z).detach().numpy()
 
     # --- Visualization ---

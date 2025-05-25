@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
 from scipy.spatial.distance import directed_hausdorff
 import seaborn as sns
-
+import torch
 
 def estimate_lyapunov(x, method="auto"):
     x = np.asarray(x, dtype=np.float64)
@@ -99,3 +99,23 @@ def plot_invariant_density(z_pred, model_name="model"):
     plt.ylabel("PC2")
     plt.grid(True)
     plt.show()
+    
+def model_step(model, x, mode):
+    y = model(x, mode=mode)
+    # support tuple
+    if isinstance(y, tuple):
+        y = y[0]
+    # support list (เช่น KoopmanAE)
+    if isinstance(y, list):
+        # กรณีเป็น list of tensor
+        if len(y) > 0 and torch.is_tensor(y[0]):
+            y = y[0]
+        # กรณีซ้อน list
+        elif len(y) > 0 and isinstance(y[0], list) and len(y[0]) > 0 and torch.is_tensor(y[0][0]):
+            y = y[0][0]
+    # ถ้าเป็น tensor ค่อย squeeze
+    if torch.is_tensor(y):
+        return y.squeeze(0)
+    # ถ้าไม่ใช่ tensor return None (หรือ raise error)
+    raise ValueError(f"model_step: Unknown output type: {type(y)}")
+
