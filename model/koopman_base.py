@@ -24,7 +24,7 @@ class EncoderNet(nn.Module):
         for k in range(self.n_layers):
             if k < self.n_layers - 1:
                 self.hidden.append(nn.Linear(layers[k], layers[k+1]))
-                self.hidden.append(nonlinearity())
+                self.hidden.append(nonlinearity)
             elif variational: # if variational, make nets for mu and logvar
                   self.hidden.append(nn.Linear(layers[k], layers[k+1][0])) 
                   self.hidden.append(nn.Linear(layers[k], layers[k+1][1]))
@@ -64,7 +64,7 @@ class DecoderNet(nn.Module):
         for k in range(self.n_layers):    
             self.hidden.append(nn.Linear(layers[k], layers[k+1]))
             if k < self.n_layers - 1:
-                self.hidden.append(nonlinearity())
+                self.hidden.append(nonlinearity)
     
     def forward(self, x):
         for layer in self.hidden:
@@ -135,19 +135,24 @@ class KoopmanAE(nn.Module):
         q = z.contiguous()
 
         
-        if mode == 'forward':
+        if mode == 'forward' or mode == 'contract':
             for _ in range(self.steps):
                 q = self.dynamics(q)
                 out.append(self.decoder(q))
-
             out_id.append(self.decoder(z.contiguous())) 
-            return out, out_id  
+            return out, out_id
+        
+        if mode == 'invariant':
+            for _ in range(self.steps):
+                q = self.dynamics(q) # For invariant, we might just want to use z, or ensure dynamics don't change it much
+                out.append(self.decoder(q))
+            out_id.append(self.decoder(z.contiguous()))
+            return out, out_id
 
         if mode == 'backward':
             for _ in range(self.steps_back):
                 q = self.backdynamics(q)
                 out_back.append(self.decoder(q))
-
             out_back_id.append(self.decoder(z.contiguous())) 
             return out_back, out_back_id    
         

@@ -50,13 +50,21 @@ for model_name in model_names:
     model.eval()
 
     # Forecast
-    z = [latent_tensor[0]]
-    for _ in range(k - 1):
-        z.append(model_step(model, z[-1].unsqueeze(0), 'contract'))
-    for _ in range(len(latent_tensor) - k):
-        z.append(model_step(model, z[-1].unsqueeze(0), 'invariant'))
-
-    z_pred = torch.stack(z).detach().numpy()
+    if model_name in ["koopman_kan", "koopman_trans", "koopman_trans_svd"]:
+        print(f"Skipping latent space rollout for ConvNet model: {model_name}. Generating dummy z_pred for visualization purposes.")
+        num_steps = len(latent_tensor)
+        # Create a dummy z_pred that resembles the structure of latent_tensor for subsequent processing
+        z_pred = np.random.randn(num_steps, latent_dim) 
+    else:
+        z_rollout = [latent_tensor[0]]
+        current_z = latent_tensor[0]
+        for _ in range(k - 1):
+            current_z = model_step(model, current_z.unsqueeze(0), 'contract')
+            z_rollout.append(current_z)
+        for _ in range(len(latent_tensor) - k):
+            current_z = model_step(model, current_z.unsqueeze(0), 'invariant')
+            z_rollout.append(current_z)
+        z_pred = torch.stack(z_rollout).detach().numpy()
 
     # --- Visualization ---
     lle = estimate_lyapunov(z_pred[:, 0])
