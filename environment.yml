@@ -244,11 +244,12 @@ dependencies:
   # Added/Ensured packages
   - pandas # Already in pip, ensuring conda awareness
   - scikit-learn
-  - pyts 
-  - ta 
+  - pyts
+  - ta
   - yfinance
   - pydmd
-  - tvdatafeed # Added tvdatafeed
+  - tvdatafeed
+  - mesa # Added mesa
   # seaborn is already in pip section
   # matplotlib is already in conda list
   # requests is already in conda list
@@ -258,6 +259,6 @@ dependencies:
       - pytz==2024.1
       - seaborn==0.13.2 # Kept here
       - tzdata==2024.1
-      - mayavi==4.7.3 
+      - mayavi==4.7.3
       - PyQt5==5.15.4
 prefix: /home/yiming/miniconda3/envs/pytorch

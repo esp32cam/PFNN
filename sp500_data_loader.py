@@ -5,6 +5,7 @@ import requests
 from datetime import datetime, timedelta
 import os # Added import
 from tvDatafeed import TvDatafeed, Interval # Added import
+import numpy as np # Added for np.busday_count
 
 # Fallback list of S&P 500 tickers
 FALLBACK_SP500_TICKERS = [
@@ -23,14 +24,17 @@ def get_sp500_tickers():
     try:
         url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
         response = requests.get(url, headers={'User-agent': 'Mozilla/5.0'})
-        response.raise_for_status()
+        response.raise_for_status() # Will raise an HTTPError for bad responses (4XX or 5XX)
         html = pd.read_html(StringIO(response.text))
         table = html[0]
         tickers = table['Symbol'].tolist()
-        tickers = [ticker.replace('.', '-') for ticker in tickers]
-        tickers = [t.replace('BF-B', 'BF.B') if t == 'BF-B' else t for t in tickers]
+        # Clean tickers: Some symbols on Wikipedia might have suffixes like '.B' or '.BF.B'
+        # yfinance usually prefers them without such suffixes for common stocks, or with '-' e.g. 'BRK-B', 'BF.B'
+        tickers = [ticker.replace('.', '-') for ticker in tickers] # Replace . with - first
+        tickers = [t.replace('BF-B', 'BF.B') if t == 'BF-B' else t for t in tickers] # Specific fix for BF.B if needed by yfinance
+        # Add other specific replacements if found necessary for yfinance/TvDatafeed
         print(f"Successfully fetched {len(tickers)} S&P 500 tickers from Wikipedia.")
-        if not tickers:
+        if not tickers: # Fallback if the list is empty for some reason
             print("Fetched ticker list from Wikipedia is empty. Using fallback list.")
             tickers = FALLBACK_SP500_TICKERS
         return tickers
@@ -45,114 +49,109 @@ def fetch_stock_data(ticker, start_date=None, end_date=None, n_bars=1200):
     """
     Fetches daily historical stock data for a given ticker, trying yfinance first,
     then TvDatafeed as a fallback.
-
-    Args:
-        ticker (str): The stock ticker symbol.
-        start_date (str, optional): Start date in 'YYYY-MM-DD' format.
-        end_date (str, optional): End date in 'YYYY-MM-DD' format.
-        n_bars (int, optional): Number of trading bars (days) to fetch.
-                                  For yfinance, if start_date is not specified, n_bars from end_date is used.
-                                  For TvDatafeed, n_bars is used directly if start_date is not specified.
-                                  If start_date is specified for TvDatafeed, n_bars is estimated.
-
-    Returns:
-        pandas.DataFrame: DataFrame with historical data, or None if fetching fails from all sources.
     """
     print(f"Fetching data for {ticker}...")
     
     # Attempt 1: yfinance
     print(f"Attempting to fetch data for {ticker} using yfinance...")
+    data_yf = None
     try:
         stock_yf = yf.Ticker(ticker)
-        data_yf = None
         if start_date:
-            data_yf = stock_yf.history(start=start_date, end=end_date, interval='1d')
+            # Ensure end_date is set if start_date is
+            actual_end_date_yf = pd.to_datetime(end_date).strftime('%Y-%m-%d') if end_date else datetime.today().strftime('%Y-%m-%d')
+            data_yf = stock_yf.history(start=pd.to_datetime(start_date).strftime('%Y-%m-%d'), end=actual_end_date_yf, interval='1d')
         else:
-            # yfinance history needs start/end. If only n_bars, calculate start from end.
-            actual_end_date = pd.to_datetime(end_date) if end_date else datetime.today()
-            # Estimate start date to get roughly n_bars
-            # This logic is similar to what was in the original file.
-            estimated_calendar_days = int(n_bars * (365.25 / 252.0) + 30) # Added buffer
-            actual_start_date = actual_end_date - timedelta(days=estimated_calendar_days)
-            data_yf = stock_yf.history(start=actual_start_date.strftime('%Y-%m-%d'), 
-                                       end=actual_end_date.strftime('%Y-%m-%d'), 
+            actual_end_date_yf = pd.to_datetime(end_date) if end_date else datetime.today()
+            estimated_calendar_days = int(n_bars * (365.25 / 252.0) + 45) # Increased buffer
+            actual_start_date_yf = actual_end_date_yf - timedelta(days=estimated_calendar_days)
+            data_yf = stock_yf.history(start=actual_start_date_yf.strftime('%Y-%m-%d'), 
+                                       end=actual_end_date_yf.strftime('%Y-%m-%d'), 
                                        interval='1d')
-            if not data_yf.empty and len(data_yf) > n_bars:
-                data_yf = data_yf.iloc[-n_bars:]
+            if not data_yf.empty: # Ensure trimming only if data is not empty
+                 # Trim to n_bars only if more rows are fetched than n_bars
+                if len(data_yf) > n_bars:
+                    data_yf = data_yf.iloc[-n_bars:]
         
         if data_yf is not None and not data_yf.empty:
             print(f"Successfully fetched data for {ticker} using yfinance. Shape: {data_yf.shape}")
             data_yf.columns = [col.lower() for col in data_yf.columns]
-            # Select common columns to match TvDatafeed potential output and simplify
             common_cols = ['open', 'high', 'low', 'close', 'volume']
-            data_yf = data_yf[[col for col in common_cols if col in data_yf.columns]]
-            return data_yf
+            # Ensure all common_cols exist, fill with NaN or 0 if not (though yfinance usually has them)
+            for col in common_cols:
+                if col not in data_yf.columns:
+                    data_yf[col] = 0 if col == 'volume' else np.nan 
+            return data_yf[common_cols]
         else:
             print(f"No data found for {ticker} using yfinance with given parameters.")
     except Exception as e:
+        # Catch more specific errors if possible, or check error message content
         print(f"yfinance failed for {ticker}: {e}")
+        if "No timezone found" in str(e) or "Failed to get ticker" in str(e) or "symbol may be delisted" in str(e).lower():
+             print(f"yfinance indicated potential delisting or symbol issue for {ticker}.")
+        # Do not return here, proceed to TvDatafeed
 
     # Attempt 2: TvDatafeed
     print(f"Attempting to fetch data for {ticker} using TvDatafeed...")
-    tv_user = os.getenv('TV_USERNAME') # Assuming these are set if TvDatafeed login is needed
+    tv_user = os.getenv('TV_USERNAME')
     tv_pass = os.getenv('TV_PASSWORD')
     
-    tv_n_bars = n_bars # Default for TvDatafeed
+    tv_n_bars_final = n_bars 
     if start_date:
-        # If start_date is given, estimate n_bars for TvDatafeed
-        # This is a rough estimation, as TvDatafeed's get_hist primarily uses n_bars from present.
         s_dt = pd.to_datetime(start_date)
         e_dt = pd.to_datetime(end_date) if end_date else datetime.today()
-        # Calculate business days, roughly. This doesn't account for holidays.
-        # A more robust way would be to use pandas_market_calendars if precision is critical.
-        tv_n_bars = np.busday_count(s_dt.date(), e_dt.date())
-        if tv_n_bars <=0 : tv_n_bars = n_bars # Fallback if calculation is off
-        print(f"Calculated n_bars for TvDatafeed based on date range: {tv_n_bars}")
+        # Calculate approximate number of trading days. np.busday_count is good.
+        # It needs dates, not datetimes for simpler usage here.
+        num_days = np.busday_count(s_dt.date(), e_dt.date())
+        if num_days > 0 : 
+            tv_n_bars_final = num_days
+        else: # if date range is too small or inverted, fall back to default n_bars
+            print(f"Warning: Calculated n_bars for TvDatafeed is {num_days} for {ticker}. Using default {n_bars}.")
+            tv_n_bars_final = n_bars
 
 
     try:
-        if tv_user and tv_pass:
-            tv = TvDatafeed(username=tv_user, password=tv_pass)
-        else:
-            tv = TvDatafeed() # Guest session
-
+        tv = TvDatafeed(username=tv_user, password=tv_pass) if tv_user and tv_pass else TvDatafeed()
         df_tv = None
-        # S&P 500 stocks are typically on NASDAQ or NYSE
-        exchanges_to_try = ['NASDAQ', 'NYSE', 'AMEX'] 
+        exchanges_to_try = ['NASDAQ', 'NYSE', 'AMEX', 'OTC', 'ARCA'] # Added more exchanges
         for exch in exchanges_to_try:
             try:
-                print(f"Trying {ticker} on {exch} with TvDatafeed (n_bars={tv_n_bars})...")
-                df_tv_temp = tv.get_hist(symbol=ticker, exchange=exch, interval=Interval.in_daily, n_bars=tv_n_bars)
+                print(f"Trying {ticker} on {exch} with TvDatafeed (n_bars={tv_n_bars_final})...")
+                df_tv_temp = tv.get_hist(symbol=ticker, exchange=exch, interval=Interval.in_daily, n_bars=tv_n_bars_final)
                 if df_tv_temp is not None and not df_tv_temp.empty:
                     print(f"Successfully fetched data for {ticker} from {exch} using TvDatafeed. Shape: {df_tv_temp.shape}")
                     df_tv = df_tv_temp
                     break 
             except Exception as e_tv_exch:
-                # More specific error checking might be needed based on TvDatafeed library's exceptions
                 msg = str(e_tv_exch).lower()
-                if "not found" in msg or "unknown symbol" in msg or "timeout" in msg: # Added timeout
-                    print(f"TvDatafeed: {ticker} not found on {exch} or timeout. Trying next exchange.")
+                if "not found" in msg or "unknown symbol" in msg or "timeout" in msg or "empty" in msg:
+                    print(f"TvDatafeed: {ticker} not found on {exch} or other issue. Trying next exchange.")
                     continue
                 else:
-                    print(f"TvDatafeed error for {ticker} on {exch}: {e_tv_exch}. Stopping TvDatafeed attempts for this ticker.")
-                    break # Non-recoverable error for this ticker with TvDatafeed
+                    print(f"TvDatafeed non-recoverable error for {ticker} on {exch}: {e_tv_exch}")
+                    break 
         
         if df_tv is not None and not df_tv.empty:
-            # TvDatafeed columns might include 'symbol'. We need 'open', 'high', 'low', 'close', 'volume'.
-            # Standardize to lowercase and select common columns.
             df_tv.columns = [col.lower() for col in df_tv.columns]
             common_cols = ['open', 'high', 'low', 'close', 'volume']
-            df_tv = df_tv[[col for col in common_cols if col in df_tv.columns]]
+            for col in common_cols: # Ensure columns exist
+                if col not in df_tv.columns:
+                    df_tv[col] = 0 if col == 'volume' else np.nan
+            df_tv = df_tv[common_cols]
             
-            # Ensure index is datetime
             if not isinstance(df_tv.index, pd.DatetimeIndex):
                 df_tv.index = pd.to_datetime(df_tv.index)
+            df_tv = df_tv.sort_index() # Ensure chronological order
 
-            # If start_date was specified, TvDatafeed might return more bars than up to start_date. Filter it.
+            # Filter by date range if start_date was provided, as TvDatafeed's n_bars is from present
             if start_date:
                 df_tv = df_tv[df_tv.index >= pd.to_datetime(start_date)]
-            if end_date: # Also filter by end_date if provided
+            if end_date:
                  df_tv = df_tv[df_tv.index <= pd.to_datetime(end_date)]
+            # If using n_bars primarily and dates were for yfinance, ensure TvDatafeed result is also trimmed if needed
+            # This logic can get complex if mixing n_bars and date ranges across APIs strictly
+            # For now, if start_date was provided, the above filter is primary for TvDatafeed.
+            # If only n_bars was goal, TvDatafeed's n_bars parameter is used.
 
             if not df_tv.empty:
                 print(f"Data for {ticker} from TvDatafeed after processing. Shape: {df_tv.shape}")
@@ -161,10 +160,10 @@ def fetch_stock_data(ticker, start_date=None, end_date=None, n_bars=1200):
                 print(f"TvDatafeed data for {ticker} became empty after date filtering.")
                 return None
         else:
-            print(f"TvDatafeed could not find data for {ticker} on tried exchanges with n_bars={tv_n_bars}.")
+            print(f"TvDatafeed could not find data for {ticker} on tried exchanges.")
             return None
     except Exception as e_tv:
-        print(f"TvDatafeed overall failed for {ticker}: {e_tv}")
+        print(f"TvDatafeed overall failed for {ticker}: {e_tv}") # This can include login errors
         return None
 
     print(f"All data fetching attempts failed for {ticker}.")
@@ -178,36 +177,33 @@ def download_and_save_ticker_data(ticker, start_date=None, end_date=None, n_bars
     if df is not None and not df.empty:
         try:
             os.makedirs(CSV_DATA_DIR, exist_ok=True)
-            # Sanitize ticker for filename if it contains characters like '/' (e.g. 'BRK.B' vs 'BRK-B')
-            # yfinance usually handles this, but good practice if tickers could be arbitrary
-            safe_ticker_fname = ticker.replace('/', '_') 
+            safe_ticker_fname = ticker.replace('/', '_').replace('.', '_') # Further sanitize for filesystem
             csv_path = os.path.join(CSV_DATA_DIR, f"{safe_ticker_fname}.csv")
-            df.to_csv(csv_path, index=True) # index=True to save the DatetimeIndex
+            df.to_csv(csv_path, index=True)
             print(f"Successfully saved data for {ticker} to {csv_path}")
             return True
         except Exception as e:
             print(f"Error saving CSV for {ticker}: {e}")
             return False
     else:
-        # fetch_stock_data would have printed the reason
         print(f"No data fetched for {ticker}, so not saving CSV.")
         return False
 
 def download_all_sp500_sequential(n_bars_data=1200, start_date_all=None, end_date_all=None, max_tickers=None):
     """
-    Downloads data for all S&P 500 tickers sequentially and saves to CSV.
-    Args:
-        n_bars_data: Number of bars if start_date_all is not specified.
-        start_date_all: Global start date for all tickers.
-        end_date_all: Global end date for all tickers.
-        max_tickers: Max number of tickers to process (for testing).
+    Downloads data for S&P 500 tickers sequentially and saves to CSV.
     """
     tickers = get_sp500_tickers()
-    if max_tickers is not None:
+    if max_tickers is not None and max_tickers > 0 : # ensure max_tickers is positive
         tickers = tickers[:max_tickers]
-        print(f"Processing a subset of {max_tickers} tickers.")
+        print(f"Processing a subset of {len(tickers)} tickers (max_tickers={max_tickers}).")
     
     print(f"Starting download for {len(tickers)} S&P 500 tickers...")
+    if start_date_all and end_date_all:
+        print(f"Using date range: {start_date_all} to {end_date_all}")
+    else:
+        print(f"Using n_bars: {n_bars_data}")
+
     success_count = 0
     failure_count = 0
     
@@ -221,9 +217,8 @@ def download_all_sp500_sequential(n_bars_data=1200, start_date_all=None, end_dat
         else:
             failure_count += 1
         
-        # Optional: add a small delay to be polite to APIs
-        # import time
-        # time.sleep(0.5) # 0.5 second delay
+        # import time # Uncomment for delay
+        # time.sleep(0.2) # Small delay to be polite to APIs
 
     print(f"\n--- Download Process Complete ---")
     print(f"Successfully downloaded and saved data for {success_count} tickers.")
@@ -234,14 +229,16 @@ def download_all_sp500_sequential(n_bars_data=1200, start_date_all=None, end_dat
 if __name__ == '__main__':
     print("--- Starting S&P 500 Data Download Script ---")
     
-    # Example Usage:
-    # 1. Fetch last N bars (e.g., ~5 years)
+    # --- Option 1: Fetch last N bars (e.g., ~5 years) for a subset of tickers ---
+    # download_all_sp500_sequential(n_bars_data=1260, max_tickers=10) 
+
+    # --- Option 2: Fetch data for a specific date range for a subset of tickers ---
+    # download_all_sp500_sequential(start_date_all='2022-01-01', end_date_all='2023-12-31', max_tickers=10)
+
+    # --- Option 3: Fetch last N bars for ALL tickers (potentially long running!) ---
     # download_all_sp500_sequential(n_bars_data=1260) 
 
-    # 2. Fetch data for a specific date range
-    # download_all_sp500_sequential(start_date_all='2020-01-01', end_date_all='2023-12-31')
-
-    # 3. Fetch last N bars for a limited number of tickers for testing
-    download_all_sp500_sequential(n_bars_data=252, max_tickers=10) # Approx 1 year for 10 tickers
+    # Default test: Fetch approx 1 year for 5 tickers for quick testing.
+    download_all_sp500_sequential(n_bars_data=252, max_tickers=5)
 
     print("\n--- S&P 500 Data Download Script Finished ---")
