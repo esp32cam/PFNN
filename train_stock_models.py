@@ -9,6 +9,7 @@ from pyts.image import RecurrencePlot
 import seaborn as sns
 import ta
 import os
+import pandas as pd # Added pandas import
 from pydmd.dmd import DMD
 from pydmd.plotter import plot_summary as pydmd_plot_summary # Alias to avoid name clashes
 # import matplotlib.pyplot as plt # Already imported as plt
@@ -16,7 +17,7 @@ from pydmd.plotter import plot_summary as pydmd_plot_summary # Alias to avoid na
 # from sklearn.preprocessing import StandardScaler # Already imported
 # from sklearn.decomposition import PCA # Already imported
 # Ensure 'ta' (for technical analysis) is imported (already imported)
-from sp500_data_loader import get_sp500_tickers, fetch_stock_data
+from sp500_data_loader import get_sp500_tickers # Modified import: fetch_stock_data removed
 # from model.utils import multi_embed # This should already be there (it is)
 
 
@@ -334,11 +335,26 @@ if __name__ == '__main__':
         # Example: model training outputs will go into ticker_output_dir/trained_models/ etc.
         # This 'ticker_output_dir' will be passed to train_model.
 
-        raw_df = fetch_stock_data(ticker, n_bars=N_BARS_DATA)
-        if raw_df is None or raw_df.empty:
-            print(f"No data fetched for {ticker}. Skipping.")
+        # Load data from CSV
+        csv_file_path = os.path.join("sp500_csv_data", f"{ticker}.csv")
+
+        if not os.path.exists(csv_file_path):
+            print(f"CSV file not found for {ticker} at {csv_file_path}. Skipping ticker.")
             continue
 
+        print(f"Loading data for {ticker} from {csv_file_path}...")
+        try:
+            # Assuming the CSV was saved with the date as the first column (index)
+            raw_df = pd.read_csv(csv_file_path, index_col=0, parse_dates=True)
+            if raw_df.empty:
+                print(f"Data for {ticker} loaded from CSV is empty. Skipping.")
+                continue
+            # Ensure column names are lowercase, as expected by preprocessing
+            raw_df.columns = [col.lower() for col in raw_df.columns]
+        except Exception as e:
+            print(f"Error loading or parsing CSV for {ticker}: {e}. Skipping ticker.")
+            continue
+        
         # Pass LATENT_DIM to the preprocessing function
         latent_data_np = preprocess_stock_data(raw_df, LATENT_DIM)
         if latent_data_np is None:

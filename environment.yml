@@ -244,10 +244,11 @@ dependencies:
   # Added/Ensured packages
   - pandas # Already in pip, ensuring conda awareness
   - scikit-learn
-  - pyts # Already listed under pip in original file, but not in conda list. Assuming it should be from conda-forge or defaults
-  - ta # Already listed under pip in original file, but not in conda list. Assuming it should be from conda-forge or defaults
+  - pyts 
+  - ta 
   - yfinance
   - pydmd
+  - tvdatafeed # Added tvdatafeed
   # seaborn is already in pip section
   # matplotlib is already in conda list
   # requests is already in conda list
@@ -257,9 +258,6 @@ dependencies:
       - pytz==2024.1
       - seaborn==0.13.2 # Kept here
       - tzdata==2024.1
-      - mayavi==4.7.3 # This might have heavy dependencies, ensure it's needed.
-      - PyQt5==5.15.4 # This might have heavy dependencies, ensure it's needed.
-      # pyts and ta were not in the original file's pip section.
-      # If they were, they would be listed here.
-      # For now, assuming they should be conda packages.
+      - mayavi==4.7.3 
+      - PyQt5==5.15.4
 prefix: /home/yiming/miniconda3/envs/pytorch

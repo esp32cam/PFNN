@@ -1,15 +1,19 @@
 import pandas as pd
 import yfinance as yf
-from io import StringIO # Required for fallback if requests fail for Wikipedia
-import requests # For fetching HTML from Wikipedia
-from datetime import datetime, timedelta # For date calculations in fetch_stock_data
+from io import StringIO
+import requests
+from datetime import datetime, timedelta
+import os # Added import
+from tvDatafeed import TvDatafeed, Interval # Added import
 
-# Fallback list of S&P 500 tickers (subset for easier testing, can be expanded)
-# Real implementation should ideally fetch this dynamically.
+# Fallback list of S&P 500 tickers
 FALLBACK_SP500_TICKERS = [
     'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'BRK-B', 'JPM', 'JNJ', 'V',
-    'PG', 'UNH', 'HD', 'MA', 'BAC', 'DIS', 'ADBE', 'PYPL', 'NFLX', 'CRM' # Approx 20 for testing
+    'PG', 'UNH', 'HD', 'MA', 'BAC', 'DIS', 'ADBE', 'PYPL', 'NFLX', 'CRM'
 ]
+
+# Directory for saving CSV data
+CSV_DATA_DIR = "sp500_csv_data"
 
 def get_sp500_tickers():
     """
@@ -17,147 +21,227 @@ def get_sp500_tickers():
     Falls back to a hardcoded list if fetching fails.
     """
     try:
-        # Attempt to fetch from Wikipedia
-        # Using a known reliable source for S&P 500 list
         url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
-        # Use pandas to read HTML tables. The S&P 500 tickers are usually in the first table.
-        # Adding a User-Agent to avoid potential HTTP 403 Forbidden errors
         response = requests.get(url, headers={'User-agent': 'Mozilla/5.0'})
-        response.raise_for_status() # Will raise an HTTPError if the HTTP request returned an unsuccessful status code
+        response.raise_for_status()
         html = pd.read_html(StringIO(response.text))
         table = html[0]
         tickers = table['Symbol'].tolist()
-        # Clean tickers: Some symbols on Wikipedia might have suffixes like '.B' or '.BF.B'
-        # yfinance usually prefers them without such suffixes for common stocks, or with '-' e.g. 'BRK-B'
-        # For now, we'll do a basic replacement, this might need refinement.
         tickers = [ticker.replace('.', '-') for ticker in tickers]
-        # Specific known replacements for yfinance compatibility
-        tickers = [t.replace('BF-B', 'BF.B') if t == 'BF-B' else t for t in tickers] # e.g. Brown-Forman
-
+        tickers = [t.replace('BF-B', 'BF.B') if t == 'BF-B' else t for t in tickers]
         print(f"Successfully fetched {len(tickers)} S&P 500 tickers from Wikipedia.")
-        if not tickers: # Fallback if the list is empty for some reason
+        if not tickers:
             print("Fetched ticker list from Wikipedia is empty. Using fallback list.")
             tickers = FALLBACK_SP500_TICKERS
         return tickers
     except requests.exceptions.RequestException as e_req:
-        print(f"Could not fetch S&P 500 tickers from Wikipedia due to a requests error: {e_req}. Using fallback list.")
+        print(f"Could not fetch S&P 500 tickers from Wikipedia (requests error): {e_req}. Using fallback list.")
         return FALLBACK_SP500_TICKERS
     except Exception as e:
-        print(f"Could not fetch S&P 500 tickers from Wikipedia due to: {e}. Using fallback list.")
+        print(f"Could not fetch S&P 500 tickers from Wikipedia (other error): {e}. Using fallback list.")
         return FALLBACK_SP500_TICKERS
 
 def fetch_stock_data(ticker, start_date=None, end_date=None, n_bars=1200):
     """
-    Fetches daily historical stock data for a given ticker using yfinance.
+    Fetches daily historical stock data for a given ticker, trying yfinance first,
+    then TvDatafeed as a fallback.
 
     Args:
         ticker (str): The stock ticker symbol.
         start_date (str, optional): Start date in 'YYYY-MM-DD' format.
         end_date (str, optional): End date in 'YYYY-MM-DD' format.
-        n_bars (int, optional): Number of trading bars (days) to fetch if start_date is not specified.
-                                  Ignored if start_date is provided.
+        n_bars (int, optional): Number of trading bars (days) to fetch.
+                                  For yfinance, if start_date is not specified, n_bars from end_date is used.
+                                  For TvDatafeed, n_bars is used directly if start_date is not specified.
+                                  If start_date is specified for TvDatafeed, n_bars is estimated.
 
     Returns:
-        pandas.DataFrame: DataFrame with historical data, or None if fetching fails.
+        pandas.DataFrame: DataFrame with historical data, or None if fetching fails from all sources.
     """
+    print(f"Fetching data for {ticker}...")
+    
+    # Attempt 1: yfinance
+    print(f"Attempting to fetch data for {ticker} using yfinance...")
     try:
-        stock = yf.Ticker(ticker)
+        stock_yf = yf.Ticker(ticker)
+        data_yf = None
         if start_date:
-            data = stock.history(start=start_date, end=end_date, interval='1d')
+            data_yf = stock_yf.history(start=start_date, end=end_date, interval='1d')
         else:
-            # If no start_date, use n_bars.
-            if end_date:
-                end_dt = pd.to_datetime(end_date)
-            else:
-                end_dt = datetime.today()
-            
-            # Estimate start date based on n_bars (approx. 252 trading days a year)
-            # Add some buffer to account for non-trading days (weekends, holidays)
-            # Roughly 365.25/252 ratio for calendar days per trading day.
-            estimated_calendar_days = int(n_bars * (365.25 / 252.0) + 15) # Add a small buffer of 15 days
-            start_dt = end_dt - timedelta(days=estimated_calendar_days)
-            
-            data = stock.history(start=start_dt.strftime('%Y-%m-%d'), end=end_dt.strftime('%Y-%m-%d'), interval='1d')
-            
-            if not data.empty and len(data) > n_bars: # Trim if we got more than n_bars
-                data = data.iloc[-n_bars:]
-            elif not data.empty and len(data) < n_bars:
-                 print(f"Warning: Fetched {len(data)} bars for {ticker}, requested {n_bars}. Data might be shorter than expected due to listing date or data availability.")
-
-
-        if data.empty:
-            print(f"No data found for {ticker} for the given parameters.")
-            return None
+            # yfinance history needs start/end. If only n_bars, calculate start from end.
+            actual_end_date = pd.to_datetime(end_date) if end_date else datetime.today()
+            # Estimate start date to get roughly n_bars
+            # This logic is similar to what was in the original file.
+            estimated_calendar_days = int(n_bars * (365.25 / 252.0) + 30) # Added buffer
+            actual_start_date = actual_end_date - timedelta(days=estimated_calendar_days)
+            data_yf = stock_yf.history(start=actual_start_date.strftime('%Y-%m-%d'), 
+                                       end=actual_end_date.strftime('%Y-%m-%d'), 
+                                       interval='1d')
+            if not data_yf.empty and len(data_yf) > n_bars:
+                data_yf = data_yf.iloc[-n_bars:]
         
-        # Standardize column names to lowercase for easier access
-        data.columns = [col.lower() for col in data.columns]
-        print(f"Successfully fetched data for {ticker}. Shape: {data.shape}")
-        return data
+        if data_yf is not None and not data_yf.empty:
+            print(f"Successfully fetched data for {ticker} using yfinance. Shape: {data_yf.shape}")
+            data_yf.columns = [col.lower() for col in data_yf.columns]
+            # Select common columns to match TvDatafeed potential output and simplify
+            common_cols = ['open', 'high', 'low', 'close', 'volume']
+            data_yf = data_yf[[col for col in common_cols if col in data_yf.columns]]
+            return data_yf
+        else:
+            print(f"No data found for {ticker} using yfinance with given parameters.")
     except Exception as e:
-        print(f"Could not fetch data for {ticker} due to: {e}")
+        print(f"yfinance failed for {ticker}: {e}")
+
+    # Attempt 2: TvDatafeed
+    print(f"Attempting to fetch data for {ticker} using TvDatafeed...")
+    tv_user = os.getenv('TV_USERNAME') # Assuming these are set if TvDatafeed login is needed
+    tv_pass = os.getenv('TV_PASSWORD')
+    
+    tv_n_bars = n_bars # Default for TvDatafeed
+    if start_date:
+        # If start_date is given, estimate n_bars for TvDatafeed
+        # This is a rough estimation, as TvDatafeed's get_hist primarily uses n_bars from present.
+        s_dt = pd.to_datetime(start_date)
+        e_dt = pd.to_datetime(end_date) if end_date else datetime.today()
+        # Calculate business days, roughly. This doesn't account for holidays.
+        # A more robust way would be to use pandas_market_calendars if precision is critical.
+        tv_n_bars = np.busday_count(s_dt.date(), e_dt.date())
+        if tv_n_bars <=0 : tv_n_bars = n_bars # Fallback if calculation is off
+        print(f"Calculated n_bars for TvDatafeed based on date range: {tv_n_bars}")
+
+
+    try:
+        if tv_user and tv_pass:
+            tv = TvDatafeed(username=tv_user, password=tv_pass)
+        else:
+            tv = TvDatafeed() # Guest session
+
+        df_tv = None
+        # S&P 500 stocks are typically on NASDAQ or NYSE
+        exchanges_to_try = ['NASDAQ', 'NYSE', 'AMEX'] 
+        for exch in exchanges_to_try:
+            try:
+                print(f"Trying {ticker} on {exch} with TvDatafeed (n_bars={tv_n_bars})...")
+                df_tv_temp = tv.get_hist(symbol=ticker, exchange=exch, interval=Interval.in_daily, n_bars=tv_n_bars)
+                if df_tv_temp is not None and not df_tv_temp.empty:
+                    print(f"Successfully fetched data for {ticker} from {exch} using TvDatafeed. Shape: {df_tv_temp.shape}")
+                    df_tv = df_tv_temp
+                    break 
+            except Exception as e_tv_exch:
+                # More specific error checking might be needed based on TvDatafeed library's exceptions
+                msg = str(e_tv_exch).lower()
+                if "not found" in msg or "unknown symbol" in msg or "timeout" in msg: # Added timeout
+                    print(f"TvDatafeed: {ticker} not found on {exch} or timeout. Trying next exchange.")
+                    continue
+                else:
+                    print(f"TvDatafeed error for {ticker} on {exch}: {e_tv_exch}. Stopping TvDatafeed attempts for this ticker.")
+                    break # Non-recoverable error for this ticker with TvDatafeed
+        
+        if df_tv is not None and not df_tv.empty:
+            # TvDatafeed columns might include 'symbol'. We need 'open', 'high', 'low', 'close', 'volume'.
+            # Standardize to lowercase and select common columns.
+            df_tv.columns = [col.lower() for col in df_tv.columns]
+            common_cols = ['open', 'high', 'low', 'close', 'volume']
+            df_tv = df_tv[[col for col in common_cols if col in df_tv.columns]]
+            
+            # Ensure index is datetime
+            if not isinstance(df_tv.index, pd.DatetimeIndex):
+                df_tv.index = pd.to_datetime(df_tv.index)
+
+            # If start_date was specified, TvDatafeed might return more bars than up to start_date. Filter it.
+            if start_date:
+                df_tv = df_tv[df_tv.index >= pd.to_datetime(start_date)]
+            if end_date: # Also filter by end_date if provided
+                 df_tv = df_tv[df_tv.index <= pd.to_datetime(end_date)]
+
+            if not df_tv.empty:
+                print(f"Data for {ticker} from TvDatafeed after processing. Shape: {df_tv.shape}")
+                return df_tv
+            else:
+                print(f"TvDatafeed data for {ticker} became empty after date filtering.")
+                return None
+        else:
+            print(f"TvDatafeed could not find data for {ticker} on tried exchanges with n_bars={tv_n_bars}.")
+            return None
+    except Exception as e_tv:
+        print(f"TvDatafeed overall failed for {ticker}: {e_tv}")
         return None
 
-if __name__ == '__main__':
-    # Test functions
-    print("Testing S&P 500 ticker fetching...")
+    print(f"All data fetching attempts failed for {ticker}.")
+    return None
+
+def download_and_save_ticker_data(ticker, start_date=None, end_date=None, n_bars=1200):
+    """
+    Fetches stock data using the hybrid strategy and saves it to a CSV file.
+    """
+    df = fetch_stock_data(ticker, start_date, end_date, n_bars)
+    if df is not None and not df.empty:
+        try:
+            os.makedirs(CSV_DATA_DIR, exist_ok=True)
+            # Sanitize ticker for filename if it contains characters like '/' (e.g. 'BRK.B' vs 'BRK-B')
+            # yfinance usually handles this, but good practice if tickers could be arbitrary
+            safe_ticker_fname = ticker.replace('/', '_') 
+            csv_path = os.path.join(CSV_DATA_DIR, f"{safe_ticker_fname}.csv")
+            df.to_csv(csv_path, index=True) # index=True to save the DatetimeIndex
+            print(f"Successfully saved data for {ticker} to {csv_path}")
+            return True
+        except Exception as e:
+            print(f"Error saving CSV for {ticker}: {e}")
+            return False
+    else:
+        # fetch_stock_data would have printed the reason
+        print(f"No data fetched for {ticker}, so not saving CSV.")
+        return False
+
+def download_all_sp500_sequential(n_bars_data=1200, start_date_all=None, end_date_all=None, max_tickers=None):
+    """
+    Downloads data for all S&P 500 tickers sequentially and saves to CSV.
+    Args:
+        n_bars_data: Number of bars if start_date_all is not specified.
+        start_date_all: Global start date for all tickers.
+        end_date_all: Global end date for all tickers.
+        max_tickers: Max number of tickers to process (for testing).
+    """
     tickers = get_sp500_tickers()
-    print(f"First 5 tickers: {tickers[:5]}")
-    print(f"Total tickers: {len(tickers)}")
-
-    if tickers:
-        print(f"\nTesting data fetching for a few tickers (e.g., {tickers[:3]}):")
-        for ticker_symbol in tickers[:3]: # Test with first 3 tickers from the fetched list
-            stock_df = fetch_stock_data(ticker_symbol, n_bars=252) # Approx 1 year
-            if stock_df is not None:
-                print(f"Data for {ticker_symbol}:")
-                print(stock_df.head())
-            else:
-                print(f"Failed to get data for {ticker_symbol}")
+    if max_tickers is not None:
+        tickers = tickers[:max_tickers]
+        print(f"Processing a subset of {max_tickers} tickers.")
     
-    print("\nTesting with a specific ticker known to have issues with '.' -> '-' (e.g. BRK.B vs BRK-B)")
-    # yfinance uses BRK-B for Berkshire Hathaway Class B
-    brk_data = fetch_stock_data('BRK-B', n_bars=100)
-    if brk_data is not None:
-        print("BRK-B data fetched successfully.")
-        print(brk_data.head())
-    else:
-        print("Failed to fetch BRK-B data.")
-
-    print("\nTesting with 'BF.B' (Brown-Forman Corp Class B)")
-    bfb_data = fetch_stock_data('BF.B', n_bars=100)
-    if bfb_data is not None:
-        print("BF.B data fetched successfully.")
-        print(bfb_data.head())
-    else:
-        print("Failed to fetch BF.B data.")
-
-
-    print("\nTesting with a non-existent ticker:")
-    non_existent_data = fetch_stock_data('NONEXISTENTTICKERXYZ', n_bars=100)
-    if non_existent_data is None:
-        print("Correctly handled non-existent ticker (returned None).")
-    else:
-        print("Error: Non-existent ticker did not return None.")
+    print(f"Starting download for {len(tickers)} S&P 500 tickers...")
+    success_count = 0
+    failure_count = 0
     
-    print("\nTesting fetch_stock_data with start_date and end_date:")
-    aapl_data_range = fetch_stock_data('AAPL', start_date='2023-01-01', end_date='2023-01-31')
-    if aapl_data_range is not None:
-        print("AAPL data for Jan 2023 fetched successfully.")
-        print(aapl_data_range.head())
-        print(aapl_data_range.tail())
-    else:
-        print("Failed to fetch AAPL data for Jan 2023.")
+    for i, ticker_symbol in enumerate(tickers):
+        print(f"\nProcessing ticker {i+1}/{len(tickers)}: {ticker_symbol}")
+        if download_and_save_ticker_data(ticker_symbol, 
+                                         start_date=start_date_all, 
+                                         end_date=end_date_all, 
+                                         n_bars=n_bars_data):
+            success_count += 1
+        else:
+            failure_count += 1
+        
+        # Optional: add a small delay to be polite to APIs
+        # import time
+        # time.sleep(0.5) # 0.5 second delay
 
-    print("\nTesting fetch_stock_data with n_bars and end_date:")
-    msft_data_nbars_end = fetch_stock_data('MSFT', end_date='2023-12-31', n_bars=60)
-    if msft_data_nbars_end is not None:
-        print(f"MSFT data for 60 bars ending 2023-12-31 fetched successfully. Shape: {msft_data_nbars_end.shape}")
-        print(msft_data_nbars_end.head())
-        print(msft_data_nbars_end.tail())
-        # Verify the end date is close to specified
-        if not msft_data_nbars_end.empty:
-             print(f"Last date in data: {msft_data_nbars_end.index[-1]}")
-    else:
-        print("Failed to fetch MSFT data with n_bars and end_date.")
+    print(f"\n--- Download Process Complete ---")
+    print(f"Successfully downloaded and saved data for {success_count} tickers.")
+    print(f"Failed to download or save data for {failure_count} tickers.")
+    print(f"Data saved in directory: '{CSV_DATA_DIR}'")
+    print("---------------------------------")
 
-    print("\nAll tests in sp500_data_loader.py completed.")
+if __name__ == '__main__':
+    print("--- Starting S&P 500 Data Download Script ---")
+    
+    # Example Usage:
+    # 1. Fetch last N bars (e.g., ~5 years)
+    # download_all_sp500_sequential(n_bars_data=1260) 
+
+    # 2. Fetch data for a specific date range
+    # download_all_sp500_sequential(start_date_all='2020-01-01', end_date_all='2023-12-31')
+
+    # 3. Fetch last N bars for a limited number of tickers for testing
+    download_all_sp500_sequential(n_bars_data=252, max_tickers=10) # Approx 1 year for 10 tickers
+
+    print("\n--- S&P 500 Data Download Script Finished ---")
