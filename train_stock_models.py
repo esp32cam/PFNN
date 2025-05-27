@@ -169,22 +169,26 @@ def train_model(model_name, model, data_scaled_np, latent_tensor_torch, latent_d
             # For simplicity, use default forward or a 'dynamics' mode if available.
             
             if model_name == "pfnn_simple" and hasattr(model, 'forward'): 
-                # pfnn_simple might have specific modes like 'contract' or 'invariant'
-                # For general dynamics training, we might not use these specific modes,
-                # or we might train different components.
-                # Let's assume a generic forward pass for z_t -> z_t+1 prediction.
-                # If model.forward has a 'mode' param, we might need to specify one.
-                # For now, let's assume it takes input_sequences and predicts target_sequences.
                 try:
-                    predictions = model(input_sequences, mode='invariant') # Or 'forward_dynamics' or just model(input_sequences)
-                except TypeError: # If mode is not an argument
-                    predictions = model(input_sequences)
+                    output_from_model = model(input_sequences, mode='invariant') 
+                except TypeError: 
+                    output_from_model = model(input_sequences)
             else:
-                predictions = model(input_sequences) 
+                output_from_model = model(input_sequences) 
             
-            if isinstance(predictions, tuple):
-                # Assuming the first element of the tuple is the primary prediction tensor
-                predictions = predictions[0] 
+            # Handle cases where the model might return a tuple or a list of tensors
+            if isinstance(output_from_model, (tuple, list)):
+                if output_from_model: # Check if the tuple/list is not empty
+                    predictions = output_from_model[0]
+                else:
+                    # This case should ideally not happen if a model returns outputs.
+                    # If it does, loss calculation will likely fail.
+                    # For now, we pass it along; criterion will raise an error.
+                    print(f"Warning: Model {model_name} returned an empty tuple/list.")
+                    predictions = output_from_model 
+            else:
+                # If it's neither a tuple nor a list, assume it's the tensor itself
+                predictions = output_from_model
             
             loss = criterion(predictions, target_sequences)
             loss.backward()
