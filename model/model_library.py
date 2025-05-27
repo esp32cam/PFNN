@@ -14,7 +14,7 @@ def get_model(name, latent_dim=18):
             decoder_layers=[latent_dim, 64, latent_dim],
             steps=1, steps_back=1,
             init_scale=1,
-            nonlinearity=nn.Tanh() # <--- pass the class, not the instance!
+            nonlinearity=nn.Tanh # <--- pass the class, not the instance!
         )
 
     elif name == "koopman_kan":

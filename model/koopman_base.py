@@ -24,7 +24,7 @@ class EncoderNet(nn.Module):
         for k in range(self.n_layers):
             if k < self.n_layers - 1:
                 self.hidden.append(nn.Linear(layers[k], layers[k+1]))
-                self.hidden.append(nonlinearity)
+                self.hidden.append(nonlinearity())
             elif variational: # if variational, make nets for mu and logvar
                   self.hidden.append(nn.Linear(layers[k], layers[k+1][0])) 
                   self.hidden.append(nn.Linear(layers[k], layers[k+1][1]))
@@ -64,7 +64,7 @@ class DecoderNet(nn.Module):
         for k in range(self.n_layers):    
             self.hidden.append(nn.Linear(layers[k], layers[k+1]))
             if k < self.n_layers - 1:
-                self.hidden.append(nonlinearity)
+                self.hidden.append(nonlinearity())
     
     def forward(self, x):
         for layer in self.hidden:
@@ -115,7 +115,7 @@ class dynamics_back(nn.Module):
 
 
 class KoopmanAE(nn.Module):
-    def __init__(self, encoder_layers, decoder_layers, steps, steps_back, init_scale=1, nonlinearity = nn.Tanh()):
+    def __init__(self, encoder_layers, decoder_layers, steps, steps_back, init_scale=1, nonlinearity = nn.Tanh):
         super(KoopmanAE, self).__init__()
         self.steps = steps
         self.steps_back = steps_back

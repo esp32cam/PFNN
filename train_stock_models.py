@@ -180,6 +180,9 @@ def train_model(model_name, model, data_scaled_np, latent_tensor_torch, latent_d
             if isinstance(output_from_model, (tuple, list)):
                 if output_from_model: # Check if the tuple/list is not empty
                     predictions = output_from_model[0]
+                    # Add the following lines:
+                    if isinstance(predictions, list) and predictions: # Check if it's a list and not empty
+                        predictions = predictions[0] # Extract the tensor
                 else:
                     # This case should ideally not happen if a model returns outputs.
                     # If it does, loss calculation will likely fail.
