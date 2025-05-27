@@ -182,6 +182,10 @@ def train_model(model_name, model, data_scaled_np, latent_tensor_torch, latent_d
             else:
                 predictions = model(input_sequences) 
             
+            if isinstance(predictions, tuple):
+                # Assuming the first element of the tuple is the primary prediction tensor
+                predictions = predictions[0] 
+            
             loss = criterion(predictions, target_sequences)
             loss.backward()
             optimizer.step()
