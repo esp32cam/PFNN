@@ -37,7 +37,7 @@ def multi_embed(data, delay=1, dimension=3):
     return embedded
 
 
-def compare_rollout_to_true(z_pred, z_true, label_pred="PFNN", label_true="Real", mode="pca"):
+def compare_rollout_to_true(z_pred, z_true, label_pred="PFNN", label_true="Real", mode="pca", save_path=None):
     if mode == "pca":
         pca = PCA(n_components=2)
         all_data = np.vstack([z_pred, z_true])
@@ -57,7 +57,11 @@ def compare_rollout_to_true(z_pred, z_true, label_pred="PFNN", label_true="Real"
     plt.ylabel("PC2")
     plt.legend()
     plt.grid(True)
-    plt.show()
+    if save_path:
+        plt.savefig(save_path)
+        plt.close(plt.gcf())
+    else:
+        plt.show()
 
     # Distance metrics
     mse = mean_squared_error(z_true_2d[:len(z_pred_2d)], z_pred_2d)
@@ -82,9 +86,13 @@ def plot_spectrum(operator, name="Gm"):
     plt.axis('equal')
     plt.grid(True)
     plt.legend()
-    plt.show()
+    if save_path:
+        plt.savefig(save_path)
+        plt.close(plt.gcf())
+    else:
+        plt.show()
     
-def plot_invariant_density(z_pred, model_name="model"):
+def plot_invariant_density(z_pred, model_name="model", save_path=None):
     import matplotlib.pyplot as plt
     import seaborn as sns
     from scipy.stats import gaussian_kde
@@ -98,7 +106,11 @@ def plot_invariant_density(z_pred, model_name="model"):
     plt.xlabel("PC1")
     plt.ylabel("PC2")
     plt.grid(True)
-    plt.show()
+    if save_path:
+        plt.savefig(save_path)
+        plt.close(plt.gcf())
+    else:
+        plt.show()
     
 def model_step(model, x, mode):
     y = model(x, mode=mode)

@@ -1,5 +1,7 @@
 # run_all_models.py
 
+import argparse
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -15,6 +17,8 @@ from utils import estimate_lyapunov, multi_embed, compare_rollout_to_true, plot_
 # --- Load your preprocessed data ---
 from tvDatafeed import TvDatafeed, Interval
 import ta
+
+os.makedirs('figures/evaluation_outputs', exist_ok=True)
 
 # Load data
 print("Loading data from TradingView...")
@@ -41,13 +45,32 @@ latent_tensor = (latent_tensor - latent_tensor.mean(0)) / latent_tensor.std(0)
 k = int(len(latent_tensor) * 0.3)
 Zc, Zm = latent_tensor[:k], latent_tensor[k:]
 
+# --- Argument Parsing ---
+parser = argparse.ArgumentParser(description='Run all models for evaluation.')
+parser.add_argument('--load_weights', action='store_true', help='Load trained weights from trained_models/ directory.')
+args = parser.parse_args()
+
 # --- Run each model ---
 model_names = ["pfnn_simple", "koopman_base", "koopman_kan", "koopman_trans", "koopman_trans_svd"]
 
 for model_name in model_names:
     print(f"\n===== Running: {model_name} =====")
     model = get_model(model_name, latent_dim=latent_dim)
-    model.eval()
+
+    if args.load_weights:
+        weights_path = f'trained_models/{model_name}_weights.pth'
+        try:
+            if os.path.exists(weights_path):
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                model.load_state_dict(torch.load(weights_path, map_location=device))
+                model.to(device)
+                print(f"Loaded trained weights for {model_name} from {weights_path}")
+            else:
+                print(f"Warning: Weights file not found for {model_name} at {weights_path}. Using initialized model.")
+        except Exception as e:
+            print(f"Error loading weights for {model_name}: {e}. Using initialized model.")
+    
+    model.eval() # Ensure model is in evaluation mode
 
     # Forecast
     if model_name in ["koopman_kan", "koopman_trans", "koopman_trans_svd"]:
@@ -75,16 +98,16 @@ for model_name in model_names:
     X_rp = rp.fit_transform(z_pred[:, 0].reshape(1, -1))[0]
     plt.imshow(X_rp, cmap='binary', origin='lower')
     plt.title(f"Recurrence Plot ({model_name})")
-    plt.show()
+    plt.savefig(f"figures/evaluation_outputs/{model_name}_recurrence_plot.png")
+    plt.close()
 
-    plot_invariant_density(z_pred, model_name)
-    plt.title(f"Invariant Density Map ({model_name})")
-    plt.xlabel("PC1")
-    plt.ylabel("PC2")
-    plt.grid(True)
-    plt.show()
+    plot_invariant_density(z_pred, model_name, save_path=f"figures/evaluation_outputs/{model_name}_invariant_density.png")
+    # Titles and labels are now handled within plot_invariant_density
 
-    compare_rollout_to_true(z_pred, latent)
+    compare_rollout_to_true(z_pred, latent, save_path=f"figures/evaluation_outputs/{model_name}_latent_attractor.png")
+    
     if hasattr(model, 'Gc') and hasattr(model, 'Gm'):
-        plot_spectrum(model.Gc, name=f"Gc ({model_name})")
-        plot_spectrum(model.Gm, name=f"Gm ({model_name})")
+        if model.Gc is not None: # Add check for None
+            plot_spectrum(model.Gc, name=f"Gc ({model_name})", save_path=f"figures/evaluation_outputs/{model_name}_Gc_spectrum.png")
+        if model.Gm is not None: # Add check for None
+            plot_spectrum(model.Gm, name=f"Gm ({model_name})", save_path=f"figures/evaluation_outputs/{model_name}_Gm_spectrum.png")
