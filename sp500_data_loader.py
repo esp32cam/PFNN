@@ -4,6 +4,7 @@ from io import StringIO
 import requests
 from datetime import datetime, timedelta
 import os # Added import
+import time # Ensure time is imported
 from tvDatafeed import TvDatafeed, Interval # Added import
 import numpy as np # Added for np.busday_count
 
@@ -217,8 +218,8 @@ def download_all_sp500_sequential(n_bars_data=1200, start_date_all=None, end_dat
         else:
             failure_count += 1
         
-        # import time # Uncomment for delay
-        # time.sleep(0.2) # Small delay to be polite to APIs
+        import time # Recommended for long runs; uncommented.
+        time.sleep(0.2) # Small delay to be polite to APIs; uncommented. Consider increasing if issues arise.
 
     print(f"\n--- Download Process Complete ---")
     print(f"Successfully downloaded and saved data for {success_count} tickers.")
@@ -239,6 +240,15 @@ if __name__ == '__main__':
     # download_all_sp500_sequential(n_bars_data=1260) 
 
     # Default test: Fetch approx 1 year for 5 tickers for quick testing.
-    download_all_sp500_sequential(n_bars_data=252, max_tickers=5)
+    # --- Default behavior: Fetch data for ALL S&P 500 tickers ---
+    # This will download approximately 5 years of daily data (n_bars_data=1260)
+    # for all tickers fetched from Wikipedia (or the fallback list).
+    # This can be a long-running process (potentially hours).
+    #
+    # To be polite to APIs and reduce the risk of being rate-limited,
+    # it's recommended to uncomment the 'import time' statement at the top of the script (if not already present)
+    # and uncomment the 'time.sleep(0.2)' line within the 'download_all_sp500_sequential' function.
+    # You might consider increasing the sleep duration (e.g., to 0.5 or 1 second) if you encounter issues.
+    download_all_sp500_sequential(n_bars_data=1260, max_tickers=None)
 
     print("\n--- S&P 500 Data Download Script Finished ---")

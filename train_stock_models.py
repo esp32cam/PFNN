@@ -19,7 +19,7 @@ sys.path.append('./model')
 from model_library import get_model
 from utils import multi_embed
 
-MODELS_TO_TRAIN = ["pfnn_simple", "koopman_base"] # Reduced for brevity
+MODELS_TO_TRAIN = ["pfnn_simple", "koopman_base", "koopman_kan", "koopman_trans", "koopman_trans_svd" ] # Reduced for brevity
 
 def extract_attractor_stats(predictions_np):
     if predictions_np is None or predictions_np.ndim != 2 or predictions_np.shape[0] == 0:
@@ -188,12 +188,13 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    LATENT_DIM = 18; EPOCHS = 5; LEARNING_RATE = 0.001
+    LATENT_DIM = 18; EPOCHS = 500; LEARNING_RATE = 0.001
     N_BARS_DATA = 252 * 2
 
     RESULTS_BASE_DIR = "stock_analysis_results"; os.makedirs(RESULTS_BASE_DIR, exist_ok=True)
     sp500_tickers_full = get_sp500_tickers()
-    sp500_tickers = [t for t in sp500_tickers_full if t and isinstance(t, str)][:5]
+    # sp500_tickers = [t for t in sp500_tickers_full if t and isinstance(t, str)][:5]
+    sp500_tickers = [t for t in sp500_tickers_full if t and isinstance(t, str)]
     print(f"Processing {len(sp500_tickers)} tickers (subset for testing).")
 
     for ticker_count, ticker in enumerate(sp500_tickers):

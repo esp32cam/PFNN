@@ -31,7 +31,7 @@ def main():
     all_tickers_full_list = get_sp500_tickers()
     all_tickers_filtered = [ticker for ticker in all_tickers_full_list if ticker and isinstance(ticker, str)]
 
-    test_ticker_limit = 10
+    test_ticker_limit = 500
     if test_ticker_limit is not None:
         all_tickers = all_tickers_filtered[:test_ticker_limit]
         print(f"Processing a subset of {len(all_tickers)} tickers (limit was {test_ticker_limit}).")
