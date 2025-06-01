@@ -1,58 +1,71 @@
-# Poincaré Flow Neural Network: Learning Chaos In A Linear Way
+# Multi-Stock Agent-Based Market Simulation with PFNN-Driven Dynamics
 
-This is the implementation of the paper Poincaré Flow Neural Network: Learning Chaos In A Linear Way.
+## Overview
 
-Learning long-term behaviors in chaotic dynamical systems, such as turbulent flows and climate modelling, is challenging due to their inherent instability and unpredictability. These systems exhibit positive Lyapunov exponents, which significantly hinder accurate long-term forecasting. As a result, understanding long-term statistical behavior is far more valuable than focusing on short-term accuracy. While autoregressive deep sequence models have been applied to capture long-term behavior, they often lead to exponentially increasing errors in learned dynamics. To address this, we shift the focus from simple prediction errors to preserving an invariant measure in dissipative chaotic systems. These systems have attractors, where trajectories settle, and the invariant measure is the probability distribution on attractors that remains unchanged under dynamics. Existing methods generate long trajectories of dissipative chaotic systems by aligning invariant measures, but it is not always possible to obtain invariant measures for arbitrary datasets. We propose the Poincaré Flow Neural Network (PFNN), a novel operator learning framework designed to capture behaviors of chaotic systems without any explicit knowledge on the invariant measure.
-PFNN employs an auto-encoder to map the chaotic system to a finite dimensional feature space, effectively linearizing the chaotic evolution.
-It then learns the linear evolution operators to match the physical dynamics by addressing two critical properties in dissipative chaotic systems: (1) contraction, the system’s convergence toward its attractors, and (2) measure invariance, trajectories on the attractors following a probability distribution invariant to the dynamics.
-Our experiments on a variety of chaotic systems, including Lorenz 96, Kuramoto-Sivashinsky equation and Navier–Stokes equation, demonstrate that PFNN has more accurate predictions and physical statistics compared to competitive baselines including the Fourier Neural Operator and the Markov Neural Operator.
+This project presents a scalable, data-driven **Agent-Based Modeling (ABM)** framework for simulating stock market dynamics. By integrating advanced operator-learning models (such as PFNN and Koopman-based methods), the platform enables the modeling of individual stock behavior and emergent market phenomena. The system supports batch simulations, real-time monitoring, and statistical validation against real market data.
 
-Table of contents
-=================
-* [Dissipative Chaotic Systems State Forecasting Expresso](#dissipative-chaotic-systems-state-forecasting-expresso)
-  * [Lorenz 96 (1D, Dimension 80)](#lorenz-96-1d-dimension-80)
-  * [KS (1D, Dimension128)](#ks-1d-dimension128)
-  * [Kolmogorov Flow (2D, Dimension 64 $\times$ 64)](#kolmogorov-flow-2d-dimension-64-x-64)
+---
 
+## Key Features
 
-## Dissipative Chaotic Systems State Forecasting Expresso
+- **High-Performance ABM Core**: Efficiently simulates hundreds of thousands of agents in parallel using distributed GPU computation (PyTorch DDP/NCCL).
+- **Stock-Specific Attractor Dynamics**: Each stock can be driven by learned attractor signals/statistics (from PFNN or similar models), enabling market regimes and chaos to be reflected at the agent level.
+- **Statistical Save & Analysis Pipeline**: All simulation outputs—including attractor statistics, Lyapunov exponents, recurrence plots, invariant densities, and prediction scores—are systematically saved for batch analysis and validation.
+- **Real-Time Monitoring**: Live dashboards provide immediate insights into price trajectories, volatility, agent profit, and emergent behaviors.
+- **Market-Wide Comparative Analysis**: Includes tools for temporal validation, network analysis, trend/volatility comparison, and correlation structure benchmarking against real market data.
 
-### Lorenz 96 (1D, Dimension 80)
+---
 
-![1727441482180](image/README/1727441482180.png)
+## Project Results
 
-### Kuramoto-Sivashinsky (1D, Dimension128)
+### Attractor Analysis & Model Integration
 
-![1727441582689](image/README/1727441582689.png)
+- **Multivariate Attractor Visualization**: Embedded price and technical indicator data into latent space using time-delay embedding + PCA, visualizing market attractor topology for each stock.
+- **PFNN Prediction & Validation**: Compared predicted attractor trajectories to real ones, using MSE and Hausdorff distance for quantitative assessment.
+- **Statistical Diagnostics**: Calculated Largest Lyapunov Exponents, recurrence plots, and invariant density maps, confirming the chaotic or stable nature of each stock's latent dynamics.
 
-### Kolmogorov Flow (2D, Dimension 64 $\times$ 64)
+### ABM Simulation Outputs
 
-Model performance in short-term forecasting accuracy in absolute error with states at step $\{2, 4, 8, 16, 32\}$.
+- **Single-Stock and Multi-Stock Simulations**: Ran parallel ABM simulations for S&P500 stocks, each with individualized attractor influence.
+- **Scenario Experiments**: Demonstrated the impact of agent count and attractor influence strength on price/volume statistics, highlighting nonlinear effects and regime shifts.
+- **Batch Results & Quantitative Analysis**: Aggregated and visualized mean final price/volume as functions of simulation parameters.
 
-<div style="width: 100%; display: table;">
-  <div style="display: table-row;">
-    <div style="display: table-cell; text-align: center; width: 34%;">
-      <h6 style="font-size: 12px;">Ground Truth</h6>
-      <img src="figures/ground_truth.gif" alt="GIF 1" style="width: 100%;">
-    </div>
-    <div style="display: table-cell; text-align: center; width: 34%;">
-      <h6 style="font-size: 12px;">PFNN Prediction</h6>
-      <img src="figures/PFNN_prediction.gif" alt="GIF 2" style="width: 100%;">
-    </div>
-    <div style="display: table-cell; text-align: center; width: 34%;">
-      <h6 style="font-size: 12px;">Absolute Error</h6>
-      <img src="figures/absolute_error.gif" alt="GIF 3" style="width: 100%;">
-    </div>
-  </div>
-</div>
+### Market Validation
 
-## Install and dependence
+- **Temporal & Volatility Analysis**: Compared rolling correlations, volatility, trend direction, and return distributions between ABM simulations and real market data.
+- **Network Structure Comparison**: Benchmarked ABM-generated correlation networks, degree distributions, and clustering statistics against the real market.
+- **Prediction Accuracy Assessment**: Evaluated direction accuracy, magnitude correlation, and MAPE for price prediction, identifying strengths and improvement areas.
 
-In the beginning, simply try to clone the repository.
+---
 
-Then, create the enviroment for PFNN via
+## Best-Practice Recommendations
 
-```
-conda env create -f environment.yml
-conda activate PFNN
-```
+- **Stock-Specific Attractor Feeding**: For high-fidelity ABM, use attractor statistics and regime clustering from each individual stock to drive agents—this allows for realistic regime switching and adaptive market simulation.
+- **Systematic Statistical Validation**: Always benchmark ABM outputs against real market statistics (volatility, correlations, network topology, distributional properties) to calibrate and improve realism.
+- **Scalable Experimentation**: Leverage distributed GPU environments and automated batch analysis to systematically explore parameter spaces and scenario impacts.
+- **Transparent Result Saving**: Maintain structured storage for all simulation outputs, diagnostic figures, and parameter configurations—this supports reproducibility and meta-analysis.
+- **Iterative Model Enhancement**: Use prediction accuracy diagnostics (direction, magnitude, error) as feedback for refining both the operator-learning models and agent decision logic.
+
+---
+
+## Example Figures & Outputs
+
+- Multivariate attractor and density plots (PCA latent space)
+- PFNN vs. Real trajectory overlays with quantitative error metrics
+- Lyapunov and recurrence diagnostics per stock
+- ABM simulation batch plots (price, volume, profit trajectories)
+- Market validation dashboards: rolling correlations, volatility ratios, trend R², and network graphs
+- Distribution and boxplot comparisons between ABM and real markets
+
+---
+
+## Future Directions
+
+- Enhance agent behavioral heterogeneity (strategy diversity, learning agents)
+- Integrate cross-asset and cross-market interaction mechanisms
+- Extend to causal inference and stress-testing scenarios (e.g., flash crashes)
+- Deploy as a research/teaching toolkit for financial market microstructure analysis
+
+---
+
+*For more details, see the included notebooks and code documentation. Contributions and collaborative inquiries are welcome!*
