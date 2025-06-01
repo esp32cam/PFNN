@@ -1,0 +1,43 @@
+PCMI Analysis Results
+==================================================
+
+Analysis Date: 2025-06-01 17:49:48.480830
+Number of stocks analyzed: 49
+Stocks included: A, AAPL, ABBV, ABNB, ABT, ACGL, ACN, ADBE, ADI, ADM, ADP, ADSK, AEE, AEP, AES, AFL, AIG, AIZ, AJG, AKAM, ALB, ALGN, ALL, ALLE, AMAT, AMCR, AMD, AME, AMGN, AMT, AMZN, ANET, ANSS, AON, AOS, APA, APD, APH, APO, APTV, ARE, ATO, AVB, AVGO, AVY, AWK, AXON, AXP, AZO
+
+Correlation Analysis:
+Correlation pairs analyzed: 1176
+Pearson correlation (real vs sim): -0.015877
+P-value: 5.865040e-01
+Mean Absolute Error: 0.594951
+Root Mean Square Error: 0.729903
+
+Network Analysis (threshold = 0.3):
+Real Market Network:
+  - Nodes: 49
+  - Edges: 768
+  - Density: 0.6531
+  - Avg Clustering: 0.7243
+
+ABM Simulation Network:
+  - Nodes: 49
+  - Edges: 820
+  - Density: 0.6973
+  - Avg Clustering: 0.7864
+
+Sector Analysis:
+Technology:
+  - Real avg correlation: 0.3178 ± 0.3742
+  - Sim avg correlation: -0.2281 ± 0.4264
+Healthcare:
+  - Real avg correlation: 0.6924 ± 0.0000
+  - Sim avg correlation: -0.0765 ± 0.0000
+
+Interpretation:
+- Poor correlation between real and simulated correlation patterns
+- Correlation is not statistically significant (p >= 0.05)
+
+Recommendations:
+- Consider adjusting ABM parameters to better capture market correlations
+- Review agent interaction mechanisms
+- Investigate sector-specific behaviors

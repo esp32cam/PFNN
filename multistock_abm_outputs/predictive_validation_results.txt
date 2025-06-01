@@ -1,0 +1,84 @@
+PREDICTIVE VALIDATION ANALYSIS RESULTS
+==================================================
+
+OVERVIEW:
+Number of stocks analyzed: 48
+Prediction horizon: 10 days
+
+AGGREGATE METRICS:
+Mean Direction Accuracy: 0.4375 ± 0.1657
+Mean Magnitude Correlation: -0.1211 ± 0.3725
+Mean Price Error (MAPE): 87.87% ± 167.75%
+
+INTERPRETATION:
+Direction Prediction: POOR (>0.5 is better than random)
+Magnitude Correlation: POOR (>0.3 indicates meaningful relationship)
+Price Accuracy: POOR (<5% excellent, <15% moderate, >15% poor)
+
+DETAILED STOCK-BY-STOCK RESULTS:
+--------------------------------------------------------------------------------
+Ticker   Dir.Acc  Mag.Corr MAPE%    MAE        RMSE      
+--------------------------------------------------------------------------------
+GOOG     0.778    -0.321   50.2     97.60      97.64     
+APA      0.778    -0.316   341.9    73.50      73.50     
+MO       0.778    -0.235   87.2     46.45      46.45     
+AMAT     0.667    -0.687   40.9     68.05      68.10     
+MMM      0.667    -0.356   22.0     28.36      28.39     
+AIG      0.667    0.784    31.3     22.54      22.57     
+ARE      0.667    -0.725   2.9      2.90       3.26      
+AON      0.667    -0.475   72.2     258.82     258.84    
+LNT      0.556    -0.575   69.3     41.02      41.02     
+AOS      0.556    0.391    40.2     27.81      27.83     
+ANET     0.556    0.456    13.9     15.71      15.90     
+APO      0.556    0.097    42.7     73.44      73.53     
+AMCR     0.556    0.045    931.8    88.47      88.47     
+AIZ      0.556    0.552    53.1     113.21     113.26    
+ALGN     0.556    -0.366   53.6     115.33     115.57    
+AAPL     0.556    -0.482   61.1     155.00     155.03    
+APH      0.556    -0.511   41.1     29.30      29.35     
+ALB      0.444    0.328    12.8     11.45      12.07     
+ALLE     0.444    -0.397   27.8     37.04      37.11     
+ACN      0.444    -0.038   73.3     263.35     263.43    
+GOOGL    0.444    -0.077   45.5     87.83      87.88     
+AJG      0.444    -0.395   64.0     181.80     181.83    
+AEE      0.444    -0.109   11.4     10.20      10.26     
+ADSK     0.444    -0.021   67.4     201.32     201.35    
+AME      0.444    0.137    45.7     83.82      83.86     
+APTV     0.444    -0.246   66.4     39.01      39.04     
+ABNB     0.333    -0.334   24.5     32.51      32.60     
+AMD      0.333    0.299    19.0     23.48      23.65     
+ADI      0.333    -0.626   53.1     113.62     113.68    
+AES      0.333    -0.380   708.0    90.79      90.79     
+ADBE     0.333    -0.254   78.1     349.89     349.95    
+ADM      0.333    0.057    94.0     47.49      47.50     
+AXP      0.333    0.100    66.7     199.33     199.39    
+AKAM     0.333    0.192    3.9      3.78       3.95      
+ACGL     0.333    0.889    7.4      6.70       6.83      
+A        0.333    -0.596   23.3     31.54      31.57     
+APD      0.333    -0.163   65.0     192.38     192.46    
+AFL      0.333    -0.126   1.1      1.16       1.25      
+AMZN     0.333    0.234    55.5     125.52     125.58    
+AWK      0.333    -0.347   20.5     25.86      25.92     
+ANSS     0.222    0.460    70.9     240.51     240.53    
+AMGN     0.222    -0.345   62.3     163.90     163.92    
+T        0.222    -0.211   357.0    81.27      81.27     
+ALL      0.222    -0.310   47.3     91.45      91.48     
+AEP      0.222    -0.261   9.5      8.73       8.75      
+AMT      0.222    -0.036   46.3     85.79      85.91     
+ABT      0.222    -0.479   6.5      7.39       7.46      
+ATO      0.111    -0.036   28.1     39.10      39.12     
+
+==================================================
+RECOMMENDATIONS:
+
+[-] POOR directional prediction capability. Consider:
+  - Adjusting ABM parameters
+  - Improving PFNN attractor selection
+  - Adding more market factors to the model
+[-] POOR magnitude correlation. The model may need:
+  - Better volatility modeling
+  - Improved agent behavior calibration
+[-] HIGH price prediction error. Consider:
+  - Normalizing price predictions
+  - Using relative changes instead of absolute prices
+  - Improving model calibration

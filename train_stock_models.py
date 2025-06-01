@@ -19,7 +19,7 @@ sys.path.append('./model')
 from model_library import get_model
 from utils import multi_embed
 
-MODELS_TO_TRAIN = ["pfnn_simple", "koopman_base", "koopman_kan", "koopman_trans", "koopman_trans_svd" ] # Reduced for brevity
+MODELS_TO_TRAIN = ["pfnn_simple", "koopman_base"]
 
 def extract_attractor_stats(predictions_np):
     if predictions_np is None or predictions_np.ndim != 2 or predictions_np.shape[0] == 0:
@@ -85,7 +85,7 @@ def train_model(model_name, model, data_scaled_np, latent_tensor_torch, latent_d
     loss_history = []
     predictions_np = None
 
-    if model_name in ["koopman_kan", "koopman_trans", "koopman_trans_svd"] and hasattr(model, 'encode') and hasattr(model, 'decode'):
+    if model_name in ["koopman_kan", "koopman_trans", "koopman_trans_svd"] and hasattr(model, 'encoder') and hasattr(model, 'decoder'):
         print(f"Training {model_name} as an autoencoder on latent_tensor.")
         if latent_tensor_torch.numel() == 0:
             print(f"Latent tensor for {model_name} is empty. Skipping training.")
@@ -102,12 +102,23 @@ def train_model(model_name, model, data_scaled_np, latent_tensor_torch, latent_d
             for batch_data_list in dataloader:
                 batch_data = batch_data_list[0].to(device)
                 if batch_data.numel() == 0: continue
+
+                if model_name in ["koopman_kan", "koopman_trans", "koopman_trans_svd"]:
+                    original_shape = batch_data.shape
+                    if len(original_shape) == 2 and original_shape[1] == 16: # Expect [batch_size, 16]
+                        batch_data = batch_data.reshape(original_shape[0], 1, 4, 4) # Reshape to [batch, C=1, H=4, W=4]
+                        # print(f"Reshaped batch_data for {model_name} AE to: {batch_data.shape}")
+                    elif len(original_shape) == 2: # Fallback if not 16, though it should be
+                        print(f"Warning: {model_name} AE input feature dim is {original_shape[1]}, not 16. Attempting generic reshape.")
+                        # This generic reshape might still hit kernel errors if not HxW compatible
+                        batch_data = batch_data.reshape(original_shape[0], 1, 1, original_shape[1])
+                
                 num_batches += 1
                 optimizer.zero_grad()
                 try:
                     if hasattr(model, 'forward_ae'): reconstructed = model.forward_ae(batch_data)
                     elif hasattr(model, 'reconstruct'): reconstructed = model.reconstruct(batch_data)
-                    else: reconstructed = model.decode(model.encode(batch_data))
+                    else: reconstructed = model.decoder(model.encoder(batch_data))
                     loss = criterion_reconstruction(reconstructed, batch_data)
                     loss.backward(); optimizer.step()
                     epoch_loss += loss.item()
@@ -119,6 +130,55 @@ def train_model(model_name, model, data_scaled_np, latent_tensor_torch, latent_d
             avg_epoch_loss = epoch_loss / num_batches if num_batches > 0 else epoch_loss
             loss_history.append(avg_epoch_loss)
             if (epoch + 1) % 10 == 0: print(f"Epoch [{epoch+1}/{epochs}], {model_name} AE Loss: {avg_epoch_loss:.4f}")
+        
+        # Add prediction generation for Koopman KAN/Trans/TransSVD models
+        print(f"Generating predictions for {model_name} using trained autoencoder model...")
+        model.eval() # Ensure model is in evaluation mode for predictions
+        final_epoch_predictions = None
+        if latent_tensor_torch.shape[0] < 2:
+            print(f"Latent tensor too short for {model_name} prediction (shape: {latent_tensor_torch.shape}). Skipping prediction.")
+        else:
+            input_sequences_pred = latent_tensor_torch[:-1].to(device)
+            # Attempt to get predictions. This assumes the model can be called this way
+            # or has a specific method for dynamics prediction after AE training.
+            # This part might need adjustment based on actual model capabilities.
+            try:
+                with torch.no_grad(): # Disable gradients for prediction
+                    # Try to call the model directly, similar to koopman_base
+                    # This assumes the model's forward pass, after AE training, can do dynamics.
+                    if model_name in ["koopman_kan", "koopman_trans", "koopman_trans_svd"]:
+                        original_pred_input_shape = input_sequences_pred.shape
+                        if len(original_pred_input_shape) == 2 and original_pred_input_shape[1] == 16: # Expect [num_seq, 16]
+                            input_sequences_pred = input_sequences_pred.reshape(original_pred_input_shape[0], 1, 4, 4) # Reshape to [num_seq, C=1, H=4, W=4]
+                            # print(f"Reshaped input_sequences_pred for {model_name} prediction to: {input_sequences_pred.shape}")
+                        elif len(original_pred_input_shape) == 2:
+                            print(f"Warning: {model_name} prediction input feature dim is {original_pred_input_shape[1]}, not 16. Attempting generic reshape.")
+                            input_sequences_pred = input_sequences_pred.reshape(original_pred_input_shape[0], 1, 1, original_pred_input_shape[1])
+                    
+                    output_from_model_pred = model(input_sequences_pred) # Assumes model's forward is suitable for dynamics
+                    
+                    if isinstance(output_from_model_pred, (tuple, list)):
+                        final_epoch_predictions = output_from_model_pred[0] if output_from_model_pred else None
+                        if isinstance(final_epoch_predictions, list) and final_epoch_predictions:
+                            final_epoch_predictions = final_epoch_predictions[0]
+                    else:
+                        final_epoch_predictions = output_from_model_pred
+
+                if final_epoch_predictions is not None:
+                    predictions_np = final_epoch_predictions.detach().cpu().numpy()
+                    print(f"Successfully generated predictions for {model_name} with shape {predictions_np.shape}")
+                    
+                    if model_name in ["koopman_kan", "koopman_trans", "koopman_trans_svd"]:
+                        if predictions_np is not None and len(predictions_np.shape) == 4:
+                            # Expected [num_seq, 1, H, W] from model output if prediction was successful
+                            # Reshape back to [num_seq, H*W] which should be [num_seq, 18]
+                            predictions_np = predictions_np.reshape(predictions_np.shape[0], -1) 
+                            # print(f"Reshaped predictions_np for {model_name} to: {predictions_np.shape} for stats extraction")
+                else:
+                    print(f"Prediction output for {model_name} was None.")
+            except Exception as e_pred_dyn:
+                print(f"Error during dynamics prediction step for {model_name}: {e_pred_dyn}")
+                print(f"This model might require a different method for generating sequence predictions after AE training.")
 
     elif model_name in ["pfnn_simple", "koopman_base"]:
         if latent_tensor_torch.shape[0] < 2:
@@ -156,8 +216,16 @@ def train_model(model_name, model, data_scaled_np, latent_tensor_torch, latent_d
 
     else:
         print(f"Model {model_name} using parameter norm loss. No sequence predictions.")
-        for epoch in range(epochs):
-            pass # Simplified for brevity
+        # This else block might be reached if a model name is in MODELS_TO_TRAIN 
+        # but not explicitly handled by the if/elif conditions above for specific training logic.
+        # Example: if a new model is added to MODELS_TO_TRAIN but its training logic isn't defined.
+        for epoch in range(epochs): # Basic loop to prevent errors if any model falls here
+            param_loss_val = sum(p.norm() * 1e-6 for p in model.parameters() if p.requires_grad)
+            optimizer.zero_grad()
+            if hasattr(param_loss_val, 'backward'): param_loss_val.backward(); optimizer.step()
+            loss_history.append(param_loss_val.item() if hasattr(param_loss_val, 'item') else float(param_loss_val))
+            if (epoch + 1) % (epochs // 5 if epochs >= 5 else 1) == 0: print(f"Epoch [{epoch+1}/{epochs}], {model_name} Param Norm Loss: {loss_history[-1]:.4f}")
+
 
     os.makedirs(os.path.join(output_base_path, "trained_models"), exist_ok=True)
     os.makedirs(os.path.join(output_base_path, "logs"), exist_ok=True)
@@ -188,13 +256,12 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    LATENT_DIM = 18; EPOCHS = 500; LEARNING_RATE = 0.001
+    LATENT_DIM = 16; EPOCHS = 5; LEARNING_RATE = 0.001
     N_BARS_DATA = 252 * 2
 
     RESULTS_BASE_DIR = "stock_analysis_results"; os.makedirs(RESULTS_BASE_DIR, exist_ok=True)
     sp500_tickers_full = get_sp500_tickers()
-    # sp500_tickers = [t for t in sp500_tickers_full if t and isinstance(t, str)][:5]
-    sp500_tickers = [t for t in sp500_tickers_full if t and isinstance(t, str)]
+    sp500_tickers = [t for t in sp500_tickers_full if t and isinstance(t, str)][:5] # Restore original ticker list
     print(f"Processing {len(sp500_tickers)} tickers (subset for testing).")
 
     for ticker_count, ticker in enumerate(sp500_tickers):
@@ -253,11 +320,18 @@ if __name__ == '__main__':
                 LATENT_DIM, EPOCHS, LEARNING_RATE, device, model_specific_output_dir
             )
             
-            if model_name == "pfnn_simple" and model_predictions_np is not None:
+            # Save attractor stats if model_predictions_np were generated by any model
+            if model_predictions_np is not None:
+                print(f"Attempting to extract and save attractor stats for {ticker}_{model_name}...")
                 attractor_stats_vector = extract_attractor_stats(model_predictions_np)
                 if attractor_stats_vector is not None:
+                    # Ensure the path uses model_specific_output_dir for consistency
                     np.save(os.path.join(model_specific_output_dir, f"{ticker}_{model_name}_attractor_stats.npy"), attractor_stats_vector)
                     print(f"Saved attractor stats for {ticker}_{model_name}.")
+                else:
+                    print(f"Could not extract attractor stats for {ticker}_{model_name} (stats_vector is None).")
+            else:
+                print(f"No model predictions (model_predictions_np is None) for {ticker}_{model_name}, skipping attractor stats.")
             
             if model_predictions_np is not None:
                 # Post-Training DMD on Predictions

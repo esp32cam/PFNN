@@ -1,0 +1,41 @@
+TEMPORAL PATTERN ANALYSIS RESULTS
+==================================================
+
+OVERVIEW:
+Number of stocks analyzed: 10
+Rolling correlation windows: [5, 10, 20] days
+
+AGGREGATE VOLATILITY METRICS:
+Mean volatility ratio (ABM/Real): 0.128 ± 0.040
+Median volatility ratio: 0.129
+Volatility ratios in range [0.8, 1.2]: 0/10
+
+AGGREGATE TREND METRICS:
+Mean trend similarity: 1.005 ± 0.114
+(Lower values indicate better similarity)
+
+ROLLING CORRELATION SUMMARY:
+5-day window: -0.007 ± 0.492 (n=1940 observations)
+10-day window: -0.016 ± 0.317 (n=1890 observations)
+20-day window: -0.018 ± 0.215 (n=1790 observations)
+
+DETAILED STOCK-BY-STOCK RESULTS:
+--------------------------------------------------------------------------------
+Ticker   VolRatio  TrendSim  RealVol%  SimVol%  
+--------------------------------------------------------------------------------
+ABNB     0.089     1.004     32.9      2.9      
+ACN      0.124     1.099     26.0      3.2      
+AEE      0.179     0.977     17.3      3.1      
+AJG      0.166     0.982     17.9      3.0      
+ALB      0.050     1.059     54.7      2.7      
+ALLE     0.152     1.189     19.6      3.0      
+AMGN     0.099     0.965     26.3      2.6      
+ANSS     0.134     0.871     22.0      2.9      
+GOOGL    0.107     0.783     28.1      3.0      
+LNT      0.178     1.121     17.3      3.1      
+
+==================================================
+TEMPORAL ANALYSIS INTERPRETATION:
+
+[-] POOR volatility matching. Significant model recalibration needed.
+[-] POOR trend direction similarity.
